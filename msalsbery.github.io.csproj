@@ -40,10 +40,41 @@
     <Content Include="content\images\icon_download.png" />
     <Content Include="content\images\sprite_download.png" />
     <Content Include="index.html" />
+    <Content Include="openseadragonimaginghelper\images\fullpage_grouphover.png" />
+    <Content Include="openseadragonimaginghelper\images\fullpage_hover.png" />
+    <Content Include="openseadragonimaginghelper\images\fullpage_pressed.png" />
+    <Content Include="openseadragonimaginghelper\images\fullpage_rest.png" />
+    <Content Include="openseadragonimaginghelper\images\home_grouphover.png" />
+    <Content Include="openseadragonimaginghelper\images\home_hover.png" />
+    <Content Include="openseadragonimaginghelper\images\home_pressed.png" />
+    <Content Include="openseadragonimaginghelper\images\home_rest.png" />
+    <Content Include="openseadragonimaginghelper\images\next_grouphover.png" />
+    <Content Include="openseadragonimaginghelper\images\next_hover.png" />
+    <Content Include="openseadragonimaginghelper\images\next_pressed.png" />
+    <Content Include="openseadragonimaginghelper\images\next_rest.png" />
+    <Content Include="openseadragonimaginghelper\images\previous_grouphover.png" />
+    <Content Include="openseadragonimaginghelper\images\previous_hover.png" />
+    <Content Include="openseadragonimaginghelper\images\previous_pressed.png" />
+    <Content Include="openseadragonimaginghelper\images\previous_rest.png" />
+    <Content Include="openseadragonimaginghelper\images\zoomin_grouphover.png" />
+    <Content Include="openseadragonimaginghelper\images\zoomin_hover.png" />
+    <Content Include="openseadragonimaginghelper\images\zoomin_pressed.png" />
+    <Content Include="openseadragonimaginghelper\images\zoomin_rest.png" />
+    <Content Include="openseadragonimaginghelper\images\zoomout_grouphover.png" />
+    <Content Include="openseadragonimaginghelper\images\zoomout_hover.png" />
+    <Content Include="openseadragonimaginghelper\images\zoomout_pressed.png" />
+    <Content Include="openseadragonimaginghelper\images\zoomout_rest.png" />
+    <Content Include="openseadragonimaginghelper\index.html" />
+    <Content Include="openseadragonimaginghelper\scripts\jquery-1.10.2.min.js" />
+    <Content Include="openseadragonimaginghelper\scripts\knockout-2.3.0.js" />
+    <Content Include="openseadragonimaginghelper\scripts\openseadragon-imaginghelper.js" />
+    <Content Include="openseadragonimaginghelper\scripts\openseadragon.min.js" />
+    <Content Include="openseadragonimaginghelper\scripts\viewmodel.js" />
     <Content Include="scripts\main.js" />
     <Content Include="Web.config" />
   </ItemGroup>
   <ItemGroup>
+    <Folder Include="openseadragonimaginghelper\data\" />
     <Folder Include="Properties\" />
   </ItemGroup>
   <ItemGroup>
