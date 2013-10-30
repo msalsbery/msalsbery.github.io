@@ -79,7 +79,7 @@
             vm.outputVM(null);
             vm.svgOverlayVM(null);
         }
-        viewerSetFullPage.apply(viewer, [fullPage]);
+        viewerSetFullPage.call(viewer, fullPage);
     }
 
     viewer.addHandler('fullpage', function (event) {
@@ -136,14 +136,14 @@
     function onOSDCanvasScroll(event) {
         // set event.stopHandlers = true to prevent any more handlers in the chain from being called
         // set event.stopBubbling = true to prevent the original event from bubbling
-        var logPoint = imagingHelper.physicalToLogicalPoint(event.position);
-        if (event.scroll > 0) {
-            imagingHelper.zoomInAboutLogicalPoint(logPoint);
-        }
-        else {
-            imagingHelper.zoomOutAboutLogicalPoint(logPoint);
-        }
-        event.stopHandlers = true;
+        //var logPoint = imagingHelper.physicalToLogicalPoint(event.position);
+        //if (event.scroll > 0) {
+        //    imagingHelper.zoomInAboutLogicalPoint(logPoint);
+        //}
+        //else {
+        //    imagingHelper.zoomOutAboutLogicalPoint(logPoint);
+        //}
+        //event.stopHandlers = true;
         event.stopBubbling = true;
     }
 
