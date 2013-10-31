@@ -6,6 +6,13 @@
         height: 1331
     }] );
 
+    OpenSeadragon.setString("Tooltips.FullPage", "Toggle full page dude!");
+    OpenSeadragon.setString("Tooltips.Home", "Go home dude!");
+    OpenSeadragon.setString("Tooltips.ZoomIn", "Zoom in dude!");
+    OpenSeadragon.setString("Tooltips.ZoomOut", "Zoom out dude!");
+    OpenSeadragon.setString("Tooltips.NextPage", "Next page dude!");
+    OpenSeadragon.setString("Tooltips.PreviousPage", "Previous page dude!");
+
     var viewer = OpenSeadragon({
                      //debugMode: true,
                      id: "viewerDiv1",
@@ -24,16 +31,16 @@
                                                      scrollHandler: onOSDCanvasScroll,
                                                      clickHandler: onOSDCanvasClick}),
         $osdCanvas = $(viewer.canvas),
-        $outputContainer = $('#outputcontainer1'),
-        $svgOverlay = $('#imgvwrSVG');
+        $outputContainer = $('#outputcontainer1');
+        //$svgOverlay = $('#imgvwrSVG');
 
-    // Example SVG annotation overlay.  We use these observables to keep the example annotation sync'd with the image zoom/pan
-    var annoGroupTranslateX = ko.observable(0.0),
-        annoGroupTranslateY = ko.observable(0.0),
-        annoGroupScale = ko.observable(1.0),
-        annoGroupTransform = ko.computed(function () {
-            return 'translate(' + annoGroupTranslateX() + ',' + annoGroupTranslateY() + ') scale(' + annoGroupScale() + ')';
-        }, this);
+    //// Example SVG annotation overlay.  We use these observables to keep the example annotation sync'd with the image zoom/pan
+    //var annoGroupTranslateX = ko.observable(0.0),
+    //    annoGroupTranslateY = ko.observable(0.0),
+    //    annoGroupScale = ko.observable(1.0),
+    //    annoGroupTransform = ko.computed(function () {
+    //        return 'translate(' + annoGroupTranslateX() + ',' + annoGroupTranslateY() + ') scale(' + annoGroupScale() + ')';
+    //    }, this);
 
     viewer.addHandler('open', function (event) {
         setMinMaxZoom();
@@ -44,7 +51,7 @@
         updateImageVM();
         updateImgViewerViewVM();
         updateImgViewerDataCoordinatesVM();
-        $svgOverlay.css( "visibility", "visible");
+        //$svgOverlay.css( "visibility", "visible");
 
         //// Example OpenSeadragon overlay
         //var olDiv = document.createElement('div');
@@ -62,7 +69,7 @@
     });
 
     viewer.addHandler('close', function (event) {
-        $svgOverlay.css( "visibility", "hidden");
+        //$svgOverlay.css( "visibility", "hidden");
         outputVM.haveImage(false);
         $osdCanvas.off('mouseenter.osdimaginghelper', onOSDCanvasMouseEnter);
         $osdCanvas.off('mousemove.osdimaginghelper', onOSDCanvasMouseMove);
@@ -77,7 +84,7 @@
         if (fullPage) {
             // Going to full-page mode...remove our bound DOM elements
             vm.outputVM(null);
-            vm.svgOverlayVM(null);
+            //vm.svgOverlayVM(null);
         }
         viewerSetFullPage.call(viewer, fullPage);
     }
@@ -86,8 +93,8 @@
         if (!event.fullpage) {
             // Exited full-page mode...restore our bound DOM elements
             vm.outputVM(outputVM);
-            vm.svgOverlayVM(svgOverlayVM);
-            $svgOverlay.css( "visibility", "visible");
+            //vm.svgOverlayVM(svgOverlayVM);
+            //$svgOverlay.css( "visibility", "visible");
         }
     });
 
@@ -109,12 +116,12 @@
         updateImgViewerScreenCoordinatesVM();
         updateImgViewerDataCoordinatesVM();
 
-        // Example SVG annotation overlay
-        //var p = viewer.viewport.pixelFromPoint(new OpenSeadragon.Point(0, 0), true);
-        var p = imagingHelper.logicalToPhysicalPoint(new OpenSeadragon.Point(0, 0));
-        annoGroupTranslateX(p.x);
-        annoGroupTranslateY(p.y);
-        annoGroupScale(imagingHelper.getZoomFactor());
+        //// Example SVG annotation overlay
+        ////var p = viewer.viewport.pixelFromPoint(new OpenSeadragon.Point(0, 0), true);
+        //var p = imagingHelper.logicalToPhysicalPoint(new OpenSeadragon.Point(0, 0));
+        //annoGroupTranslateX(p.x);
+        //annoGroupTranslateY(p.y);
+        //annoGroupScale(imagingHelper.getZoomFactor());
     }
 
     function onOSDCanvasDrag(event) {
@@ -305,7 +312,7 @@
     };
 
     var svgOverlayVM = {
-        annoGroupTransform: annoGroupTransform
+        //annoGroupTransform: annoGroupTransform
     };
 
     var vm = {
