@@ -23,7 +23,7 @@
                      minZoomLevel: 0.001,
                      maxZoomLevel: 10,
                      zoomPerClick: 1.4,
-                     tileSources: "data/testpattern.dzi"//tileSource "data/tall.dzi" "data/wide.dzi" *TODO Add UI to let user switch images
+                     tileSources: tileSource//tileSource "data/testpattern.dzi" "data/tall.dzi" "data/wide.dzi" *TODO Add UI to let user switch images
                  }),
         imagingHelper = viewer.activateImagingHelper({viewChangedHandler: onImageViewChanged}),
         viewerInputHook = viewer.addViewerInputHook({dragHandler: onOSDCanvasDrag, 
