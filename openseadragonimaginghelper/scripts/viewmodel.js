@@ -1,48 +1,47 @@
 (function() {
 
+    var appTitle = 'OpenSeadragonImagingHelper';
+
+    $(window).resize(onWindowResize);
+    $(window).resize();
+
     var tileSource = new OpenSeadragon.LegacyTileSource( [{
         url: 'data/dog_radiograph_2.jpg',
         width: 1909,
         height: 1331
     }] );
 
-    OpenSeadragon.setString("Tooltips.FullPage", "Toggle full page dude!");
-    OpenSeadragon.setString("Tooltips.Home", "Go home dude!");
-    OpenSeadragon.setString("Tooltips.ZoomIn", "Zoom in dude!");
-    OpenSeadragon.setString("Tooltips.ZoomOut", "Zoom out dude!");
-    OpenSeadragon.setString("Tooltips.NextPage", "Next page dude!");
-    OpenSeadragon.setString("Tooltips.PreviousPage", "Previous page dude!");
-
     var viewer = OpenSeadragon({
                      //debugMode: true,
                      id: "viewerDiv1",
-                     prefixUrl: "images/",
+                     prefixUrl: "content/images/",
+                     useCanvas: true,
                      showNavigationControl: true,
                      showNavigator: true,
                      visibilityRatio: 0.1,
                      minZoomLevel: 0.001,
                      maxZoomLevel: 10,
                      zoomPerClick: 1.4,
-                     tileSources: tileSource//tileSource "data/testpattern.dzi" "data/tall.dzi" "data/wide.dzi" *TODO Add UI to let user switch images
+                     tileSources: ["data/testpattern.dzi", "data/tall.dzi", "data/wide.dzi", tileSource]
                  }),
         imagingHelper = viewer.activateImagingHelper({viewChangedHandler: onImageViewChanged}),
         viewerInputHook = viewer.addViewerInputHook({dragHandler: onOSDCanvasDrag, 
                                                      moveHandler: onOSDCanvasMove,
                                                      scrollHandler: onOSDCanvasScroll,
                                                      clickHandler: onOSDCanvasClick}),
-        $osdCanvas = $(viewer.canvas),
-        $outputContainer = $('#outputcontainer1');
-        //$svgOverlay = $('#imgvwrSVG');
+        $osdCanvas = null,
+        $svgOverlay = $('.imgvwrSVG');
 
-    //// Example SVG annotation overlay.  We use these observables to keep the example annotation sync'd with the image zoom/pan
-    //var annoGroupTranslateX = ko.observable(0.0),
-    //    annoGroupTranslateY = ko.observable(0.0),
-    //    annoGroupScale = ko.observable(1.0),
-    //    annoGroupTransform = ko.computed(function () {
-    //        return 'translate(' + annoGroupTranslateX() + ',' + annoGroupTranslateY() + ') scale(' + annoGroupScale() + ')';
-    //    }, this);
+    // Example SVG annotation overlay.  We use these observables to keep the example annotation sync'd with the image zoom/pan
+    var annoGroupTranslateX = ko.observable(0.0),
+        annoGroupTranslateY = ko.observable(0.0),
+        annoGroupScale = ko.observable(1.0),
+        annoGroupTransform = ko.computed(function () {
+            return 'translate(' + annoGroupTranslateX() + ',' + annoGroupTranslateY() + ') scale(' + annoGroupScale() + ')';
+        }, this);
 
     viewer.addHandler('open', function (event) {
+        $osdCanvas = $(viewer.canvas);
         setMinMaxZoom();
         outputVM.haveImage(true);
         $osdCanvas.on('mouseenter.osdimaginghelper', onOSDCanvasMouseEnter);
@@ -51,7 +50,7 @@
         updateImageVM();
         updateImgViewerViewVM();
         updateImgViewerDataCoordinatesVM();
-        //$svgOverlay.css( "visibility", "visible");
+        $svgOverlay.css( "visibility", "visible");
 
         //// Example OpenSeadragon overlay
         //var olDiv = document.createElement('div');
@@ -69,7 +68,7 @@
     });
 
     viewer.addHandler('close', function (event) {
-        //$svgOverlay.css( "visibility", "hidden");
+        $svgOverlay.css( "visibility", "hidden");
         outputVM.haveImage(false);
         $osdCanvas.off('mouseenter.osdimaginghelper', onOSDCanvasMouseEnter);
         $osdCanvas.off('mousemove.osdimaginghelper', onOSDCanvasMouseMove);
@@ -84,7 +83,7 @@
         if (fullPage) {
             // Going to full-page mode...remove our bound DOM elements
             vm.outputVM(null);
-            //vm.svgOverlayVM(null);
+            vm.svgOverlayVM(null);
         }
         viewerSetFullPage.call(viewer, fullPage);
     }
@@ -93,8 +92,8 @@
         if (!event.fullpage) {
             // Exited full-page mode...restore our bound DOM elements
             vm.outputVM(outputVM);
-            //vm.svgOverlayVM(svgOverlayVM);
-            //$svgOverlay.css( "visibility", "visible");
+            vm.svgOverlayVM(svgOverlayVM);
+            $svgOverlay.css( "visibility", "visible");
         }
     });
 
@@ -116,12 +115,12 @@
         updateImgViewerScreenCoordinatesVM();
         updateImgViewerDataCoordinatesVM();
 
-        //// Example SVG annotation overlay
-        ////var p = viewer.viewport.pixelFromPoint(new OpenSeadragon.Point(0, 0), true);
-        //var p = imagingHelper.logicalToPhysicalPoint(new OpenSeadragon.Point(0, 0));
-        //annoGroupTranslateX(p.x);
-        //annoGroupTranslateY(p.y);
-        //annoGroupScale(imagingHelper.getZoomFactor());
+        // Example SVG annotation overlay
+        //var p = viewer.viewport.pixelFromPoint(new OpenSeadragon.Point(0, 0), true);
+        var p = imagingHelper.logicalToPhysicalPoint(new OpenSeadragon.Point(0, 0));
+        annoGroupTranslateX(p.x);
+        annoGroupTranslateY(p.y);
+        annoGroupScale(imagingHelper.getZoomFactor());
     }
 
     function onOSDCanvasDrag(event) {
@@ -259,6 +258,17 @@
         }
     }
 
+    function onWindowResize() {
+        var headerheight = $('.shell-header-wrapper').outerHeight(true);
+        var footerheight = $('.shell-footer-wrapper').outerHeight(true);
+        //var shellheight = $('.shell-wrapper').innerHeight();
+        //var contentheight = shellheight - (headerheight + footerheight);
+        $('.shell-view-wrapper').css("top", headerheight);
+        $('.shell-view-wrapper').css("bottom", footerheight);
+
+        $('.viewer-container').css("height", $('.output-container').height());
+    }
+
     var outputVM = {
         haveImage: ko.observable(false),
         haveMouse: ko.observable(false),
@@ -312,10 +322,11 @@
     };
 
     var svgOverlayVM = {
-        //annoGroupTransform: annoGroupTransform
+        annoGroupTransform: annoGroupTransform
     };
 
     var vm = {
+        appTitle: ko.observable(appTitle),
         outputVM: ko.observable(outputVM),
         svgOverlayVM: ko.observable(svgOverlayVM)
     };
