@@ -1,4 +1,8 @@
-﻿/* 
+//! OpenSeadragonImagingHelper 1.0.0
+//! Build date: 2013-11-06
+//! Git commit: v1.0.0-1-gd857d00
+//! https://github.com/msalsbery/OpenSeadragonImagingHelper
+/* 
  * Copyright (c) 2013 Mark Salsbery
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy of
@@ -102,8 +106,6 @@
         if (!options.viewer.imagingHelper) {
             options.viewer.imagingHelper = this;
         }
-
-        // TODO Scope these public
 
         /**
          * A reference to the options passed at creation.
@@ -605,10 +607,11 @@
             this._viewportCenter.y = this._viewportOrigin.y + (this._viewportHeight / 2.0);
             this._zoomFactor = this._viewer.viewport.getContainerSize().x / (this._viewportWidth * this.imgWidth);
             this.raiseEvent('image-view-changed', {
-                eventSource: this,
-                viewportWidth: this._viewportWidth,
+                viewportWidth:  this._viewportWidth,
                 viewportHeight: this._viewportHeight,
-                viewportCenter: this._viewportCenter
+                viewportOrigin: this._viewportOrigin,
+                viewportCenter: this._viewportCenter,
+                zoomFactor:     this._zoomFactor
             });
         },
 
