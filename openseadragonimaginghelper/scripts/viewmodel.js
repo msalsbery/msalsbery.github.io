@@ -65,6 +65,12 @@
         //    //    position = position || null;
         //    //}
         //});
+
+        //// Example OpenSeadragon overlay
+        //var img = document.createElement("img");
+        //img.src = "content/images/openseadragon/next_rest.png";
+        //var point = new OpenSeadragon.Point(0.5, 0.5)
+        //viewer.drawer.addOverlay(img, point);
     });
 
     viewer.addHandler('close', function (event) {
