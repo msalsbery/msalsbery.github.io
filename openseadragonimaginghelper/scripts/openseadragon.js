@@ -1,6 +1,6 @@
 //! OpenSeadragon 0.9.131
 //! Built on 2013-11-12
-//! Git commit: v0.9.131-166-ga1c9b97
+//! Git commit: v0.9.131-166-ga1c9b97-dirty
 //! http://openseadragon.github.io
 //! License: http://openseadragon.github.io/license/
 
@@ -5181,6 +5181,9 @@ $.extend( $.Viewer.prototype, $.EventSource.prototype, $.ControlDock.prototype, 
                         this.pagingControl,
                         {anchor: $.ControlAnchor.TOP_LEFT}
                     );
+                    if ( $.Browser.vendor == $.BROWSERS.IE && $.Browser.version < 9 ) {
+                        $.getElement( this.pagingControl ).style.display = "inline";
+                    }
                 }
             }
         }
@@ -5303,6 +5306,9 @@ $.extend( $.Viewer.prototype, $.EventSource.prototype, $.ControlDock.prototype, 
                         this.navControl,
                         {anchor: $.ControlAnchor.TOP_LEFT}
                     );
+                    if ( $.Browser.vendor == $.BROWSERS.IE && $.Browser.version < 9 ) {
+                        $.getElement( this.navControl ).style.display = "inline";
+                    }
                 }
             }
 
