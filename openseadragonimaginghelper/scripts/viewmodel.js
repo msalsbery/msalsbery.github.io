@@ -25,10 +25,11 @@
                      tileSources: ["data/testpattern.dzi", "data/tall.dzi", "data/wide.dzi", tileSource]
                  }),
         imagingHelper = viewer.activateImagingHelper({onImageViewChanged: onImageViewChanged}),
-        viewerInputHook = viewer.addViewerInputHook({onViewerDrag: onOsdViewerDrag, 
-                                                     onViewerMove: onOsdViewerMove,
-                                                     onViewerScroll: onOsdViewerScroll,
-                                                     onViewerClick: onOsdViewerClick}),
+        viewerInputHook = viewer.addViewerInputHook({hooks: [
+            {tracker: 'viewer', handler: 'moveHandler', hookHandler: onHookOsdViewerMove},
+            {tracker: 'viewer', handler: 'scrollHandler', hookHandler: onHookOsdViewerScroll},
+            {tracker: 'viewer', handler: 'clickHandler', hookHandler: onHookOsdViewerClick}
+        ]}),
         $osdCanvas = null,
         $svgOverlay = $('.imgvwrSVG');
 
@@ -127,14 +128,7 @@
         annoGroupScale(imagingHelper.getZoomFactor());
     }
 
-    function onOsdViewerDrag(event) {
-        // set event.stopHandlers = true to prevent any more handlers in the chain from being called
-        // set event.stopBubbling = true to prevent the original event from bubbling
-        // set event.preventDefaultAction = true to prevent viewer's default action
-        event.stopBubbling = true;
-    }
-
-    function onOsdViewerMove(event) {
+    function onHookOsdViewerMove(event) {
         // set event.stopHandlers = true to prevent any more handlers in the chain from being called
         // set event.stopBubbling = true to prevent the original event from bubbling
         // set event.preventDefaultAction = true to prevent viewer's default action
@@ -145,7 +139,7 @@
         event.preventDefaultAction = true;
     }
 
-    function onOsdViewerScroll(event) {
+    function onHookOsdViewerScroll(event) {
         // set event.stopHandlers = true to prevent any more handlers in the chain from being called
         // set event.stopBubbling = true to prevent the original event from bubbling
         // set event.preventDefaultAction = true to prevent viewer's default action
@@ -160,7 +154,7 @@
         event.preventDefaultAction = true;
     }
 
-    function onOsdViewerClick(event) {
+    function onHookOsdViewerClick(event) {
         // set event.stopHandlers = true to prevent any more handlers in the chain from being called
         // set event.stopBubbling = true to prevent the original event from bubbling
         // set event.preventDefaultAction = true to prevent viewer's default action
