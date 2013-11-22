@@ -149,6 +149,7 @@
         this._maxZoom = 10;
         this._zoomStepPercent = 30;
         this._haveImage = false;
+        this._viewerSize = null;
         // Unadjusted viewport settings (aspect ratio not applied)
         // All coordinates are logical (0 to 1) relative to the image
         this._viewportWidth = 0.0;
@@ -194,19 +195,18 @@
          *
          **/
         notifyResize: function () {
-            var viewerSize,
+            var newViewerSize,
                 center,
                 zoom;
             if (this._haveImage) {
-                center = new OpenSeadragon.Point(this._viewportCenter.x, this._viewportCenter.y);
-                zoom = this._zoomFactor;
-                viewerSize = this.getViewerSize();
-                this._viewer.viewport.resize(viewerSize, false);
-                this._viewer.viewport.panTo(new OpenSeadragon.Point(center.x, center.y / this.imgAspectRatio), true);
-                //this._viewer.viewport.zoomTo((zoom * this.imgWidth) / viewerSize.x,
-                //                         new OpenSeadragon.Point(center.x, center.y / this.imgAspectRatio), true);
-                this._viewer.viewport.zoomTo((zoom * this.imgWidth) / viewerSize.x,
-                                         null, true);
+                newViewerSize = this.getViewerSize();
+                if (!newViewerSize.equals(this._viewerSize)) {
+                    center = new OpenSeadragon.Point(this._viewportCenter.x, this._viewportCenter.y / this.imgAspectRatio);
+                    zoom = this._zoomFactor;
+                    this._viewer.viewport.resize(newViewerSize, false);
+                    this._viewer.viewport.panTo(center, true);
+                    this._viewer.viewport.zoomTo((zoom * this.imgWidth) / newViewerSize.x, null, true);
+                }
             }
         },
 
@@ -685,7 +685,7 @@
         },
 
         onResize: function() {
-            this.trackZoomPan();
+            //this.trackZoomPan();
         },
 
         onFullPage: function() {
