@@ -22,6 +22,7 @@
                      minZoomLevel: 0.001,
                      maxZoomLevel: 10,
                      zoomPerClick: 1.4,
+                     preserveScaleOnResize: false,
                      tileSources: ["data/testpattern.dzi", "data/tall.dzi", "data/wide.dzi", tileSource]
                  }),
         imagingHelper = viewer.activateImagingHelper({onImageViewChanged: onImageViewChanged}),

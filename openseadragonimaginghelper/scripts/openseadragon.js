@@ -1,6 +1,6 @@
 //! OpenSeadragon 0.9.131
-//! Built on 2013-11-14
-//! Git commit: v0.9.131-167-gf76aa54-dirty
+//! Built on 2013-11-21
+//! Git commit: v0.9.131-179-gd223c9d-dirty
 //! http://openseadragon.github.io
 //! License: http://openseadragon.github.io/license/
 
@@ -179,6 +179,9 @@
   *     ratio. This can be set to Infinity to allow 'infinite' zooming into the
   *     image though it is less effective visually if the HTML5 Canvas is not
   *     availble on the viewing device.
+  *
+  * @param {Boolean} [options.preserveScaleOnResize=false]
+  *     Set to true to preserve the displayed image scale when the viewer is resized.
   *
   * @param {Number} [options.visibilityRatio=0.5]
   *     The percentage ( as a number from 0 to 1 ) of the source image which
@@ -538,6 +541,7 @@ window.OpenSeadragon = window.OpenSeadragon || function( options ){
             minZoomImageRatio:      0.9, //-> closer to 0 allows zoom out to infinity
             maxZoomPixelRatio:      1.1, //-> higher allows 'over zoom' into pixels
             pixelsPerWheelLine:     40,
+            preserveScaleOnResize:   false,
 
             //DEFAULT CONTROL SETTINGS
             showSequenceControl:    true,  //SEQUENCE
@@ -572,9 +576,6 @@ window.OpenSeadragon = window.OpenSeadragon || function( options ){
             collectionLayout:       'horizontal', //vertical
             collectionMode:         false,
             collectionTileSize:     800,
-
-            //EVENT RELATED CALLBACKS
-            onPageChange:           null,
 
             //PERFORMANCE SETTINGS
             imageLoaderLimit:       0,
@@ -5326,28 +5327,30 @@ $.extend( $.Viewer.prototype, $.EventSource.prototype, $.ControlDock.prototype, 
      * @return {OpenSeadragon.Viewer} Chainable.
      */
     goToPage: function( page ){
-        //page is a 1 based index so normalize now
-        //page = page;
-        this.raiseEvent( 'page', { page: page } );
-
-        if( this.tileSources.length > page ){
+        if( page >= 0 && page < this.tileSources.length ){
+            /**
+             * Raised when the page is changed on a viewer configured with multiple image sources.
+             *
+             * @event page
+             * @memberof OpenSeadragon.Viewer
+             * @type {Object}
+             * @property {OpenSeadragon.Viewer} eventSource - A reference to the Viewer which raised the event.
+             * @property {Number} page - The page index.
+             * @property {?Object} userData - Arbitrary subscriber-defined object.
+             */
+            this.raiseEvent( 'page', { page: page } );
 
             THIS[ this.hash ].sequence = page;
 
             this._updateSequenceButtons( page );
 
             this.open( this.tileSources[ page ] );
+
+            if( this.referenceStrip ){
+                this.referenceStrip.setFocus( page );
+            }
         }
 
-        if( $.isFunction( this.onPageChange ) ){
-            this.onPageChange({
-                page: page,
-                viewer: this
-            });
-        }
-        if( this.referenceStrip ){
-            this.referenceStrip.setFocus( page );
-        }
         return this;
     },
 
@@ -5903,19 +5906,21 @@ function resizeViewportAndRecenter( viewer, containerSize, oldBounds, oldCenter 
 
     viewport.resize( containerSize, true );
 
-    // We try to remove blanks as much as possible
-    var imageHeight = 1 / viewer.source.aspectRatio;
-    var newWidth = oldBounds.width <= 1 ? oldBounds.width : 1;
-    var newHeight = oldBounds.height <= imageHeight ?
-        oldBounds.height : imageHeight;
+    if ( !viewer.preserveScaleOnResize ) {
+        // We try to remove blanks as much as possible
+        var imageHeight = 1 / viewer.source.aspectRatio;
+        var newWidth = oldBounds.width <= 1 ? oldBounds.width : 1;
+        var newHeight = oldBounds.height <= imageHeight ?
+            oldBounds.height : imageHeight;
 
-    var newBounds = new $.Rect(
-        oldCenter.x - ( newWidth / 2.0 ),
-        oldCenter.y - ( newHeight / 2.0 ),
-        newWidth,
-        newHeight
-        );
-    viewport.fitBounds( newBounds, true );
+        var newBounds = new $.Rect(
+            oldCenter.x - ( newWidth / 2.0 ),
+            oldCenter.y - ( newHeight / 2.0 ),
+            newWidth,
+            newHeight
+            );
+        viewport.fitBounds( newBounds, true );
+    }
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -7933,7 +7938,12 @@ $.IIIF1_1TileSource = function( options ){
         throw new Error('IIIF required parameters not provided.');
     }
 
-    options.tileSize = this.tile_width;
+    if ( !(this.tile_width && this.tile_height) ) {
+        // use the short dimension if there aren't tile sizes provided.
+        options.tileSize = Math.min(this.height, this.width);
+    } else {
+        options.tileSize = this.tile_width;
+    }
 
     if (! options.maxLevel ) {
         var mf = -1;
@@ -7965,7 +7975,6 @@ $.extend( $.IIIF1_1TileSource.prototype, $.TileSource.prototype, {
             "http://library.stanford.edu/iiif/image-api/1.1/compliance.html#level0" == data.profile ||
             "http://library.stanford.edu/iiif/image-api/1.1/compliance.html#level1" == data.profile ||
             "http://library.stanford.edu/iiif/image-api/1.1/compliance.html#level2" == data.profile ||
-            "http://library.stanford.edu/iiif/image-api/1.1/compliance.html#level3" == data.profile ||
             "http://library.stanford.edu/iiif/image-api/1.1/compliance.html" == data.profile
         );
     },

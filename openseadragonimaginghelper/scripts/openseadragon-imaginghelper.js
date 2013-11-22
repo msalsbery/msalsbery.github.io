@@ -1,6 +1,6 @@
 //! OpenSeadragonImagingHelper 1.0.0
-//! Build date: 2013-11-14
-//! Git commit: v1.0.0-6-g12c6a96
+//! Build date: 2013-11-21
+//! Git commit: v1.0.0-8-g9f1b6be-dirty
 //! https://github.com/msalsbery/OpenSeadragonImagingHelper
 /* 
  * Copyright (c) 2013 Mark Salsbery
@@ -56,9 +56,9 @@
     /**
      * Event handler method signature used by all OpenSeadragon events.
      *
-     * @callback eventHandler
+     * @callback EventHandler
      * @memberof OpenSeadragon
-     * @param {object} event - See individual events for event properties passed.
+     * @param {Object} event - See individual events for event properties passed.
      */
 
     /**
@@ -75,7 +75,7 @@
      * @method activateImagingHelper
      * @memberof OpenSeadragon.Viewer#
      * @param {Object} options
-     * @param {OpenSeadragon.eventHandler} [options.onImageViewChanged] - {@link OpenSeadragon.ImagingHelper.event:image-view-changed} handler method.
+     * @param {OpenSeadragon.EventHandler} [options.onImageViewChanged] - {@link OpenSeadragon.ImagingHelper.event:image-view-changed} handler method.
      * @returns {OpenSeadragon.ImagingHelper}
      *
      **/
@@ -97,7 +97,7 @@
      * @extends external:"OpenSeadragon.EventSource"
      * @param {Object} options
      * @param {external:"OpenSeadragon.Viewer"} options.viewer - Required! Reference to OpenSeadragon viewer to attach to.
-     * @param {OpenSeadragon.eventHandler} [options.onImageViewChanged] - {@link OpenSeadragon.ImagingHelper.event:image-view-changed} handler method.
+     * @param {OpenSeadragon.EventHandler} [options.onImageViewChanged] - {@link OpenSeadragon.ImagingHelper.event:image-view-changed} handler method.
      *
      **/
     $.ImagingHelper = function(options) {
@@ -120,7 +120,7 @@
          * @member {object} options
          * @memberof OpenSeadragon.ImagingHelper#
          * @property {external:"OpenSeadragon.Viewer"} viewer - Reference to OpenSeadragon viewer this ImagingHelper is attached to.
-         * @property {OpenSeadragon.eventHandler} [onImageViewChanged] - {@link OpenSeadragon.ImagingHelper.event:image-view-changed} handler method.
+         * @property {OpenSeadragon.EventHandler} [onImageViewChanged] - {@link OpenSeadragon.ImagingHelper.event:image-view-changed} handler method.
          */
         this.options = options;
         /**
@@ -164,24 +164,13 @@
         this._viewer.addHandler("close", $.delegate(this, this.onClose));
         this._viewer.addHandler("animation", $.delegate(this, this.onAnimation));
         this._viewer.addHandler("animation-finish", $.delegate(this, this.onAnimationFinish));
+        this._viewer.addHandler("resize", $.delegate(this, this.onResize));
         this._viewer.addHandler("full-page", $.delegate(this, this.onFullPage));
     };
 
     $.extend($.ImagingHelper.prototype, $.EventSource.prototype,
     /** @lends OpenSeadragon.ImagingHelper.prototype */
     {
-        /**
-         * Raised whenever the viewer's zoom or pan changes and the ImagingHelper's properties have been updated.
-         *
-         * @event image-view-changed
-         * @memberof OpenSeadragon.ImagingHelper
-         * @type {object}
-         * @property {OpenSeadragon.ImagingHelper} eventSource - A reference to the ImagingHelper which raised the event.
-         * @property {number} viewportWidth - Width of viewport in logical coordinates.
-         * @property {number} viewportHeight - Height of viewport in logical coordinates.
-         * @property {external:"OpenSeadragon.Point"} viewportCenter - Center of viewport in logical coordinates.
-         */
-
         /**
          * Gets the minimum zoom factor allowed.
          *
@@ -611,6 +600,19 @@
             this._viewportCenter.x = this._viewportOrigin.x + (this._viewportWidth / 2.0);
             this._viewportCenter.y = this._viewportOrigin.y + (this._viewportHeight / 2.0);
             this._zoomFactor = this._viewer.viewport.getContainerSize().x / (this._viewportWidth * this.imgWidth);
+            /**
+             * Raised whenever the viewer's zoom or pan changes and the ImagingHelper's properties have been updated.
+             * @event image-view-changed
+             * @memberof OpenSeadragon.ImagingHelper
+             * @type {Object}
+             * @property {OpenSeadragon.ImagingHelper} eventSource - A reference to the ImagingHelper which raised the event.
+             * @property {number} viewportWidth - Width of viewport in logical coordinates.
+             * @property {number} viewportHeight - Height of viewport in logical coordinates.
+             * @property {external:"OpenSeadragon.Point"} viewportOrigin - Center of viewport in logical coordinates.
+             * @property {external:"OpenSeadragon.Point"} viewportCenter - Center of viewport in logical coordinates.
+             * @property {number} zoomFactor - Zoom factor.
+             * @property {Object} [userData=null] - Arbitrary subscriber-defined object.
+             */
             this.raiseEvent('image-view-changed', {
                 viewportWidth:  this._viewportWidth,
                 viewportHeight: this._viewportHeight,
@@ -640,6 +642,10 @@
         },
 
         onAnimationFinish: function() {
+            this.trackZoomPan();
+        },
+
+        onResize: function() {
             this.trackZoomPan();
         },
 
