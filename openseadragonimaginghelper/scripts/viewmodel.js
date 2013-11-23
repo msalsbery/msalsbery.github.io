@@ -22,7 +22,7 @@
                      minZoomLevel: 0.001,
                      maxZoomLevel: 10,
                      zoomPerClick: 1.4,
-                     preserveScaleOnResize: false,
+                     pollForResize: false, // If false, we have to handle resizing of the viewer
                      tileSources: ["data/testpattern.dzi", "data/tall.dzi", "data/wide.dzi", tileSource]
                  }),
         imagingHelper = viewer.activateImagingHelper({onImageViewChanged: onImageViewChanged}),
@@ -270,6 +270,11 @@
         $('.shell-view-wrapper').css("bottom", footerheight);
 
         $('.viewer-container').css("height", $('.output-container').height());
+
+        if (viewer && imagingHelper && !viewer.pollForResize) {
+            // We're handling viewer resizing ourselves. Let the ImagingHelper do it.
+            imagingHelper.notifyResize();
+        }
     }
 
     var outputVM = {

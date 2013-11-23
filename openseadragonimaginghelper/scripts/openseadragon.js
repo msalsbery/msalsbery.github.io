@@ -1,6 +1,6 @@
 //! OpenSeadragon 0.9.131
-//! Built on 2013-11-21
-//! Git commit: v0.9.131-179-gd223c9d-dirty
+//! Built on 2013-11-22
+//! Git commit: v0.9.131-180-gc797141
 //! http://openseadragon.github.io
 //! License: http://openseadragon.github.io/license/
 
@@ -180,8 +180,8 @@
   *     image though it is less effective visually if the HTML5 Canvas is not
   *     availble on the viewing device.
   *
-  * @param {Boolean} [options.preserveScaleOnResize=false]
-  *     Set to true to preserve the displayed image scale when the viewer is resized.
+  * @param {Boolean} [options.pollForResize=true]
+  *     Set to false to prevent polling for viewer size changes. Useful for providing custom resize behavior.
   *
   * @param {Number} [options.visibilityRatio=0.5]
   *     The percentage ( as a number from 0 to 1 ) of the source image which
@@ -541,7 +541,7 @@ window.OpenSeadragon = window.OpenSeadragon || function( options ){
             minZoomImageRatio:      0.9, //-> closer to 0 allows zoom out to infinity
             maxZoomPixelRatio:      1.1, //-> higher allows 'over zoom' into pixels
             pixelsPerWheelLine:     40,
-            preserveScaleOnResize:   false,
+            pollForResize:          true,
 
             //DEFAULT CONTROL SETTINGS
             showSequenceControl:    true,  //SEQUENCE
@@ -5848,14 +5848,16 @@ function updateOnce( viewer ) {
 
     //viewer.profiler.beginUpdate();
 
-    containerSize = _getSafeElemSize( viewer.container );
-    if ( !containerSize.equals( THIS[ viewer.hash ].prevContainerSize ) ) {
-        // maintain image position
-        var oldBounds = viewer.viewport.getBounds();
-        var oldCenter = viewer.viewport.getCenter();
-        resizeViewportAndRecenter(viewer, containerSize, oldBounds, oldCenter);
-        THIS[ viewer.hash ].prevContainerSize = containerSize;
-        THIS[ viewer.hash ].forceRedraw = true;
+    if ( viewer.pollForResize ) {
+        containerSize = _getSafeElemSize( viewer.container );
+        if ( !containerSize.equals( THIS[ viewer.hash ].prevContainerSize ) ) {
+            // maintain image position
+            var oldBounds = viewer.viewport.getBounds();
+            var oldCenter = viewer.viewport.getCenter();
+            resizeViewportAndRecenter(viewer, containerSize, oldBounds, oldCenter);
+            THIS[ viewer.hash ].prevContainerSize = containerSize;
+            THIS[ viewer.hash ].forceRedraw = true;
+        }
     }
 
     animated = viewer.viewport.update();
@@ -5906,21 +5908,19 @@ function resizeViewportAndRecenter( viewer, containerSize, oldBounds, oldCenter 
 
     viewport.resize( containerSize, true );
 
-    if ( !viewer.preserveScaleOnResize ) {
-        // We try to remove blanks as much as possible
-        var imageHeight = 1 / viewer.source.aspectRatio;
-        var newWidth = oldBounds.width <= 1 ? oldBounds.width : 1;
-        var newHeight = oldBounds.height <= imageHeight ?
-            oldBounds.height : imageHeight;
+    // We try to remove blanks as much as possible
+    var imageHeight = 1 / viewer.source.aspectRatio;
+    var newWidth = oldBounds.width <= 1 ? oldBounds.width : 1;
+    var newHeight = oldBounds.height <= imageHeight ?
+        oldBounds.height : imageHeight;
 
-        var newBounds = new $.Rect(
-            oldCenter.x - ( newWidth / 2.0 ),
-            oldCenter.y - ( newHeight / 2.0 ),
-            newWidth,
-            newHeight
-            );
-        viewport.fitBounds( newBounds, true );
-    }
+    var newBounds = new $.Rect(
+        oldCenter.x - ( newWidth / 2.0 ),
+        oldCenter.y - ( newHeight / 2.0 ),
+        newWidth,
+        newHeight
+        );
+    viewport.fitBounds( newBounds, true );
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -12760,14 +12760,15 @@ $.Viewport.prototype = {
     resize: function( newContainerSize, maintain ) {
         var oldBounds = this.getBounds(),
             newBounds = oldBounds,
-            widthDeltaFactor = newContainerSize.x / this.containerSize.x;
+            widthDeltaFactor;
 
         this.containerSize = new $.Point(
             newContainerSize.x,
             newContainerSize.y
         );
 
-        if (maintain) {
+        if ( maintain ) {
+            widthDeltaFactor = newContainerSize.x / this.containerSize.x;
             newBounds.width  = oldBounds.width * widthDeltaFactor;
             newBounds.height = newBounds.width / this.getAspectRatio();
         }
