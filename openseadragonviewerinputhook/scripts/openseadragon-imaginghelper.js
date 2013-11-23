@@ -192,6 +192,7 @@
          *
          *
          * @method
+         * @fires OpenSeadragon.ImagingHelper.image-view-changed
          *
          **/
         notifyResize: function () {
@@ -204,8 +205,9 @@
                     center = new OpenSeadragon.Point(this._viewportCenter.x, this._viewportCenter.y / this.imgAspectRatio);
                     zoom = this._zoomFactor;
                     this._viewer.viewport.resize(newViewerSize, false);
-                    this._viewer.viewport.panTo(center, true);
                     this._viewer.viewport.zoomTo((zoom * this.imgWidth) / newViewerSize.x, null, true);
+                    this._viewer.viewport.panTo(center, true);
+                    this.raiseImageViewChanged();
                 }
             }
         },
@@ -623,22 +625,13 @@
 
         /*
          * 
-         * Called whenever the OpenSeadragon viewer zoom/pan changes
+         * Raises the {@link OpenSeadragon.ImagingHelper.image-view-changed} event
          * 
          * @private
          * @method
-         * @fires OpenSeadragon.ImagingHelper.image-view-changed
          *
          **/
-        trackZoomPan: function () {
-            var boundsRect = this._viewer.viewport.getBounds(true);
-            this._viewportOrigin.x = boundsRect.x;
-            this._viewportOrigin.y = boundsRect.y * this.imgAspectRatio;
-            this._viewportWidth = boundsRect.width;
-            this._viewportHeight = boundsRect.height * this.imgAspectRatio;
-            this._viewportCenter.x = this._viewportOrigin.x + (this._viewportWidth / 2.0);
-            this._viewportCenter.y = this._viewportOrigin.y + (this._viewportHeight / 2.0);
-            this._zoomFactor = this._viewer.viewport.getContainerSize().x / (this._viewportWidth * this.imgWidth);
+        raiseImageViewChanged: function () {
             /**
              * Raised whenever the viewer's zoom or pan changes and the ImagingHelper's properties have been updated.
              * @event image-view-changed
@@ -659,6 +652,28 @@
                 viewportCenter: this._viewportCenter,
                 zoomFactor:     this._zoomFactor
             });
+        },
+
+        /*
+         * 
+         * Called whenever the OpenSeadragon viewer zoom/pan changes
+         * 
+         * @private
+         * @method
+         * @fires OpenSeadragon.ImagingHelper.image-view-changed
+         *
+         **/
+        trackZoomPan: function () {
+            var boundsRect = this._viewer.viewport.getBounds(true);
+            this._viewportOrigin.x = boundsRect.x;
+            this._viewportOrigin.y = boundsRect.y * this.imgAspectRatio;
+            this._viewportWidth = boundsRect.width;
+            this._viewportHeight = boundsRect.height * this.imgAspectRatio;
+            this._viewportCenter.x = this._viewportOrigin.x + (this._viewportWidth / 2.0);
+            this._viewportCenter.y = this._viewportOrigin.y + (this._viewportHeight / 2.0);
+            this._zoomFactor = this._viewer.viewport.getContainerSize().x / (this._viewportWidth * this.imgWidth);
+
+            this.raiseImageViewChanged();
         },
 
         onOpen: function() {
@@ -685,7 +700,9 @@
         },
 
         onResize: function() {
-            //this.trackZoomPan();
+            if (this._viewer && this._viewer.pollForResize) {
+                this.trackZoomPan();
+            }
         },
 
         onFullPage: function() {
