@@ -12,14 +12,31 @@
         height: 1331
     }] );
 
-    var viewer = OpenSeadragon({
+    var isCollapsed = false,
+        _$wrapper = $('.expanderWrapper'),
+        _$widget = _$wrapper.parent(),
+        _$headerContainer = $('.expanderHeaderContainer'),
+        _$header = $(_$headerContainer.children()[0]),
+        _$contentContainer = $('.expanderContentContainer'),
+        _$content = $(_$contentContainer.children()[0]),
+        expandedOpacity = 1.0,
+        collapsedOpacity = 0.40,
+        width = 190,
+        height = 220,
+        collapsedWidth = _$header.outerWidth(),
+        collapsedHeight = _$headerContainer.outerHeight(),
+        viewer = OpenSeadragon({
                      //debugMode: true,
                      //showReferenceStrip: true,
                      id: 'viewerDiv1',
                      prefixUrl: 'content/images/openseadragon/',
                      useCanvas: true,
                      showNavigationControl: true,
+                     navigationControlAnchor: OpenSeadragon.ControlAnchor.BOTTOM_LEFT,
+                     showSequenceControl: true,
+                     sequenceControlAnchor: OpenSeadragon.ControlAnchor.BOTTOM_LEFT,
                      showNavigator: true,
+                     navigatorId: 'navigatorDiv1',
                      visibilityRatio: 0.1,
                      minZoomLevel: 0.001,
                      maxZoomLevel: 10,
@@ -33,8 +50,8 @@
             {tracker: 'viewer', handler: 'scrollHandler', hookHandler: onHookOsdViewerScroll},
             {tracker: 'viewer', handler: 'clickHandler', hookHandler: onHookOsdViewerClick}
         ]}),
-        $osdCanvas = null,
-        $svgOverlay = $('.imgvwrSVG');
+        _$osdCanvas = null,
+        _$svgOverlay = $('.imgvwrSVG');
 
     // Example SVG annotation overlay.  We use these observables to keep the example annotation sync'd with the image zoom/pan
     var annoGroupTranslateX = ko.observable(0.0),
@@ -45,16 +62,35 @@
         }, this);
 
     viewer.addHandler('open', function (event) {
-        $osdCanvas = $(viewer.canvas);
+        _$osdCanvas = $(viewer.canvas);
         setMinMaxZoomForImage();
         outputVM.haveImage(true);
-        $osdCanvas.on('mouseenter.osdimaginghelper', onOsdCanvasMouseEnter);
-        $osdCanvas.on('mousemove.osdimaginghelper', onOsdCanvasMouseMove);
-        $osdCanvas.on('mouseleave.osdimaginghelper', onOsdCanvasMouseLeave);
+        _$osdCanvas.on('mouseenter.osdimaginghelper', onOsdCanvasMouseEnter);
+        _$osdCanvas.on('mousemove.osdimaginghelper', onOsdCanvasMouseMove);
+        _$osdCanvas.on('mouseleave.osdimaginghelper', onOsdCanvasMouseLeave);
         updateImageVM();
         updateImgViewerViewVM();
         updateImgViewerDataCoordinatesVM();
-        $svgOverlay.css( 'visibility', 'visible');
+
+        if (viewer.navigator && viewer.navigator.element) {
+            (function( style, borderWidth ){
+                style.margin        = '0px';
+                style.padding       = '0px';
+                style.border        = '';
+                style.background    = '#ffffff'; //#000
+                style.opacity       = 1.0;       //0.8
+                style.overflow      = 'visible';
+            }( viewer.navigator.element.style));
+        }
+
+        _$widget.css( 'visibility', 'visible');
+        if (isCollapsed) {
+            _doCollapse(false);
+        }
+        else {
+            _doExpand(true);
+        }
+        _$svgOverlay.css( 'visibility', 'visible');
 
         //// Example OpenSeadragon overlay
         //var olDiv = document.createElement('div');
@@ -78,12 +114,22 @@
     });
 
     viewer.addHandler('close', function (event) {
-        $svgOverlay.css( 'visibility', 'hidden');
+        _$widget.css( 'visibility', 'hidden');
+        _$svgOverlay.css( 'visibility', 'hidden');
         outputVM.haveImage(false);
-        $osdCanvas.off('mouseenter.osdimaginghelper', onOsdCanvasMouseEnter);
-        $osdCanvas.off('mousemove.osdimaginghelper', onOsdCanvasMouseMove);
-        $osdCanvas.off('mouseleave.osdimaginghelper', onOsdCanvasMouseLeave);
-        $osdCanvas = null;
+        _$osdCanvas.off('mouseenter.osdimaginghelper', onOsdCanvasMouseEnter);
+        _$osdCanvas.off('mousemove.osdimaginghelper', onOsdCanvasMouseMove);
+        _$osdCanvas.off('mouseleave.osdimaginghelper', onOsdCanvasMouseLeave);
+        _$osdCanvas = null;
+    });
+
+    viewer.addHandler('navigator-scroll', function (event) {
+        if (event.scroll > 0) {
+            imagingHelper.zoomIn();
+        }
+        else {
+            imagingHelper.zoomOut();
+        }
     });
 
     viewer.addHandler('pre-full-page', function (event) {
@@ -99,7 +145,7 @@
             // Exited full-page mode...restore our bound DOM elements
             vm.outputVM(outputVM);
             vm.svgOverlayVM(svgOverlayVM);
-            $svgOverlay.css( 'visibility', 'visible');
+            _$svgOverlay.css( 'visibility', 'visible');
         }
     });
 
@@ -116,7 +162,7 @@
             // Exited full-screen mode...restore our bound DOM elements
             vm.outputVM(outputVM);
             vm.svgOverlayVM(svgOverlayVM);
-            $svgOverlay.css( 'visibility', 'visible');
+            _$svgOverlay.css( 'visibility', 'visible');
         }
     });
 
@@ -204,7 +250,7 @@
         outputVM.OsdElementOffsetX(osdoffset.x);
         outputVM.OsdElementOffsetY(osdoffset.y);
 
-        var offset = $osdCanvas.offset();
+        var offset = _$osdCanvas.offset();
         outputVM.mousePositionX(event.pageX);
         outputVM.mousePositionY(event.pageY);
         outputVM.elementOffsetX(offset.left);
@@ -294,6 +340,82 @@
             // We're handling viewer resizing ourselves. Let the ImagingHelper do it.
             imagingHelper.notifyResize();
         }
+    }
+
+    _$headerContainer.on('click', null, function (event) {
+        if (isCollapsed) {
+            expand();
+        }
+        else {
+            collapse();
+        }
+    });
+
+    function _makeResizable() {
+        _$widget.resizable({
+            disabled: false,
+            handles: 'e, s, se',
+            minWidth: 100,
+            minHeight: 100,
+            maxWidth: null,
+            maxHeight: null,
+            containment: '#theImageViewerContainer',
+            resize: function (event, ui) {
+                width = ui.size.width;
+                height = ui.size.height;
+                _resizeContent();
+            }
+        });
+    }
+
+    function _removeResizable() {
+        _$widget.resizable('destroy');
+    }
+
+    function _doExpand(adjustresizable) {
+        _makeResizable();
+        _$widget.width(width);
+        _$widget.height(height);
+        //_resizeContent();
+        _$contentContainer.show('fast', function () {
+            _resizeContent();
+        });
+        _$widget.css('opacity', expandedOpacity);
+    }
+
+    function _doCollapse(adjustresizable) {
+        _$widget.css('opacity', collapsedOpacity);
+        _$contentContainer.hide('fast');
+        _$widget.width(collapsedWidth);
+        _$widget.height(collapsedHeight);
+        _resizeContent();
+        _removeResizable();
+    }
+
+    function expand() {
+        if (isCollapsed) {
+            _doExpand(true);
+            isCollapsed = false;
+        }
+    }
+
+    function collapse() {
+        if (!isCollapsed) {
+            _doCollapse(true);
+            isCollapsed = true;
+        }
+    }
+
+    function _resizeContent() {
+        var wrapperwidth = _$widget.innerWidth();
+        var wrapperheight = _$widget.innerHeight();
+        var headerheight = _$headerContainer ? _$headerContainer.outerHeight(true) : 0;
+        var newheight = wrapperheight - headerheight;
+        _$contentContainer.width(wrapperwidth);
+        _$contentContainer.height(newheight);
+        _$content.width(wrapperwidth);
+        _$content.height(newheight);
+        viewer.navigator.update(viewer.viewport);
     }
 
     var outputVM = {

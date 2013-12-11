@@ -1,6 +1,6 @@
 //! OpenSeadragon 1.0.0
-//! Built on 2013-12-03
-//! Git commit: v1.0.0-1-g9a534e2
+//! Built on 2013-12-11
+//! Git commit: v1.0.0-12-g86be255-dirty
 //! http://openseadragon.github.io
 //! License: http://openseadragon.github.io/license/
 
@@ -270,6 +270,9 @@
   * @property {Boolean} [showNavigationControl=true]
   *     Set to false to prevent the appearance of the default navigation controls.
   *
+  * @property {OpenSeadragon.ControlAnchor} [navigationControlAnchor=TOP_LEFT]
+  *     Placement of the default navigation controls.
+  *
   * @property {Boolean} [showNavigator=false]
   *     Set to true to make the navigator minimap appear.
   *
@@ -324,6 +327,9 @@
   * @property {Boolean} [showSequenceControl=true]
   *     If the viewer has been configured with a sequence of tile sources, then
   *     provide buttons for navigating forward and backward through the images.
+  *
+  * @property {OpenSeadragon.ControlAnchor} [sequenceControlAnchor=TOP_LEFT]
+  *     Placement of the default sequence controls.
   *
   * @property {Number} [initialPage=0]
   *     If the viewer has been configured with a sequence of tile sources, display this page initially.
@@ -703,12 +709,14 @@ window.OpenSeadragon = window.OpenSeadragon || function( options ){
             autoResize:             true,
 
             //DEFAULT CONTROL SETTINGS
-            showSequenceControl:    true,  //SEQUENCE
-            preserveViewport:       false, //SEQUENCE
-            showNavigationControl:  true,  //ZOOM/HOME/FULL/SEQUENCE
-            controlsFadeDelay:      2000,  //ZOOM/HOME/FULL/SEQUENCE
-            controlsFadeLength:     1500,  //ZOOM/HOME/FULL/SEQUENCE
-            mouseNavEnabled:        true,  //GENERAL MOUSE INTERACTIVITY
+            showSequenceControl:     true,  //SEQUENCE
+            sequenceControlAnchor:   null,  //SEQUENCE
+            preserveViewport:        false, //SEQUENCE
+            showNavigationControl:   true,  //ZOOM/HOME/FULL/SEQUENCE
+            navigationControlAnchor: null,  //ZOOM/HOME/FULL
+            controlsFadeDelay:       2000,  //ZOOM/HOME/FULL/SEQUENCE
+            controlsFadeLength:      1500,  //ZOOM/HOME/FULL/SEQUENCE
+            mouseNavEnabled:         true,  //GENERAL MOUSE INTERACTIVITY
 
             //VIEWPORT NAVIGATOR SETTINGS
             showNavigator:          false,
@@ -5505,7 +5513,7 @@ $.extend( $.Viewer.prototype, $.EventSource.prototype, $.ControlDock.prototype, 
                 }else{
                     this.addControl(
                         this.pagingControl,
-                        {anchor: $.ControlAnchor.TOP_LEFT}
+                        {anchor: this.sequenceControlAnchor || $.ControlAnchor.TOP_LEFT}
                     );
                 }
             }
@@ -5626,7 +5634,7 @@ $.extend( $.Viewer.prototype, $.EventSource.prototype, $.ControlDock.prototype, 
                 }else{
                     this.addControl(
                         this.navControl,
-                        {anchor: $.ControlAnchor.TOP_LEFT}
+                        {anchor: this.navigationControlAnchor || $.ControlAnchor.TOP_LEFT}
                     );
                 }
             }
@@ -6559,7 +6567,7 @@ function onNext(){
 $.Navigator = function( options ){
 
     var viewer      = options.viewer,
-        viewerSize  = $.getElementSize( viewer.element),
+        viewerSize,
         unneededElement;
 
     //We may need to create a new element and id if they did not
@@ -6613,7 +6621,6 @@ $.Navigator = function( options ){
 
     options.minPixelRatio = this.minPixelRatio = viewer.minPixelRatio;
 
-    this.viewerSizeInPoints = viewer.viewport.deltaPointsFromPixels(viewerSize);
     this.borderWidth = 2;
     //At some browser magnification levels the display regions lines up correctly, but at some there appears to
     //be a one pixel gap.
@@ -6661,15 +6668,11 @@ $.Navigator = function( options ){
 
 
     this.element.innerTracker = new $.MouseTracker({
-        element:        this.element,
-        dragHandler:        $.delegate( this, onCanvasDrag ),
-        clickHandler:       $.delegate( this, onCanvasClick ),
-        releaseHandler:     $.delegate( this, onCanvasRelease ),
-        scrollHandler:  function(){
-            //dont scroll the page up and down if the user is scrolling
-            //in the navigator
-            return false;
-        }
+        element:         this.element,
+        dragHandler:     $.delegate( this, onCanvasDrag ),
+        clickHandler:    $.delegate( this, onCanvasClick ),
+        releaseHandler:  $.delegate( this, onCanvasRelease ),
+        scrollHandler:   $.delegate( this, onCanvasScroll )
     }).setTracking( true );
 
     /*this.displayRegion.outerTracker = new $.MouseTracker({
@@ -6691,6 +6694,7 @@ $.Navigator = function( options ){
         this.element.style.width  = options.width + 'px';
         this.element.style.height = options.height + 'px';
     } else {
+        viewerSize = $.getElementSize( viewer.element );
         this.element.style.width  = ( viewerSize.x * options.sizeRatio ) + 'px';
         this.element.style.height = ( viewerSize.y * options.sizeRatio ) + 'px';
     }
@@ -6765,21 +6769,7 @@ function onCanvasClick( event ) {
         dimensions;
     if (! this.drag) {
         if ( this.viewer.viewport ) {
-            viewerPosition = this.viewport.deltaPointsFromPixels( event.position );
-            dimensions = this.viewer.viewport.getBounds().getSize();
-            newBounds = new $.Rect(
-                viewerPosition.x - dimensions.x/2,
-                viewerPosition.y - dimensions.y/2,
-                dimensions.x,
-                dimensions.y
-            );
-            if (this.viewer.source.aspectRatio > this.viewer.viewport.getAspectRatio()) {
-                newBounds.y = newBounds.y -  ((this.viewerSizeInPoints.y - (1/this.viewer.source.aspectRatio)) /2 );
-            }
-            else  {
-                newBounds.x = newBounds.x -  ((this.viewerSizeInPoints.x -1) /2 );
-            }
-            this.viewer.viewport.fitBounds(newBounds);
+            this.viewer.viewport.panTo( this.viewport.pointFromPixel( event.position, true ) );
             this.viewer.viewport.applyConstraints();
         }
     }
@@ -6829,16 +6819,29 @@ function onCanvasRelease( event ) {
  * @function
  */
 function onCanvasScroll( event ) {
-    var factor;
-    if ( this.viewer.viewport ) {
-        factor = Math.pow( this.zoomPerScroll, event.scroll );
-        this.viewer.viewport.zoomBy(
-            factor,
-            this.viewport.getCenter()
-        );
-        this.viewer.viewport.applyConstraints();
-    }
-    //cancels event
+    /**
+     * Raised when a scroll event occurs on the {@link OpenSeadragon.Viewer#navigator} element (mouse wheel, touch pinch, etc.).
+     *
+     * @event navigator-scroll
+     * @memberof OpenSeadragon.Viewer
+     * @type {object}
+     * @property {OpenSeadragon.Viewer} eventSource - A reference to the Viewer which raised this event.
+     * @property {OpenSeadragon.MouseTracker} tracker - A reference to the MouseTracker which originated this event.
+     * @property {OpenSeadragon.Point} position - The position of the event relative to the tracked element.
+     * @property {Number} scroll - The scroll delta for the event.
+     * @property {Boolean} shift - True if the shift key was pressed during this event.
+     * @property {Object} originalEvent - The original DOM event.
+     * @property {?Object} userData - Arbitrary subscriber-defined object.
+     */
+    this.viewer.raiseEvent( 'navigator-scroll', {
+        tracker: event.eventSource,
+        position: event.position,
+        scroll: event.scroll,
+        shift: event.shift,
+        originalEvent: event.originalEvent
+    });
+    //dont scroll the page up and down if the user is scrolling
+    //in the navigator
     return false;
 }
 
@@ -8509,9 +8512,9 @@ $.extend( $.IIIF1_1TileSource.prototype, $.TileSource.prototype, /** @lends Open
      *   "tile_width" : 1024,
      *   "tile_height" : 1024,
      *   "formats" : [ "jpg", "png" ],
-     *   "qualities" : [ "native", "grey" ]
-     *   "profile" : "http://library.stanford.edu/iiif/image-api/1.1/compliance.html#level0" 
-     * } 
+     *   "qualities" : [ "native", "grey" ],
+     *   "profile" : "http://library.stanford.edu/iiif/image-api/1.1/compliance.html#level0"
+     * }
      */
     configure: function( data ){
       return data;
@@ -9432,11 +9435,9 @@ $.Button = function( options ) {
         this.imgGroup     = $.makeTransparentImage( this.srcGroup );
         this.imgHover     = $.makeTransparentImage( this.srcHover );
         this.imgDown      = $.makeTransparentImage( this.srcDown );
+        this.imgDiv       = $.makeNeutralElement( "div" );
 
-        this.element.appendChild( this.imgRest );
-        this.element.appendChild( this.imgGroup );
-        this.element.appendChild( this.imgHover );
-        this.element.appendChild( this.imgDown );
+        this.imgDiv.style.position = "relative";
 
         this.imgGroup.style.position =
         this.imgHover.style.position =
@@ -9463,6 +9464,12 @@ $.Button = function( options ) {
             this.imgDown.style.top  =
                 "";
         }
+
+        this.imgDiv.appendChild( this.imgRest );
+        this.imgDiv.appendChild( this.imgGroup );
+        this.imgDiv.appendChild( this.imgHover );
+        this.imgDiv.appendChild( this.imgDown );
+        this.element.appendChild( this.imgDiv );
     }
 
 
