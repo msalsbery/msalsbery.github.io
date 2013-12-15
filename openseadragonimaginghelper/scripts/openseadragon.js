@@ -1,6 +1,6 @@
 //! OpenSeadragon 1.0.0
-//! Built on 2013-12-11
-//! Git commit: v1.0.0-12-g86be255-dirty
+//! Built on 2013-12-14
+//! Git commit: v1.0.0-21-g1e9ea15
 //! http://openseadragon.github.io
 //! License: http://openseadragon.github.io/license/
 
@@ -277,20 +277,38 @@
   *     Set to true to make the navigator minimap appear.
   *
   * @property {Boolean} [navigatorId=navigator-GENERATED DATE]
-  *     Set the ID of a div to hold the navigator minimap.  If one is not specified,
-  *     one will be generated and placed on top of the main image
+  *     The ID of a div to hold the navigator minimap.
+  *     If an ID is specified, the navigatorPosition, navigatorSizeRatio, navigatorMaintainSizeRatio, and navigatorTop|Left|Height|Width options will be ignored.
+  *     If an ID is not specified, a div element will be generated and placed on top of the main image.
   *
-  * @property {Number} [navigatorHeight=null]
-  *     TODO: Implement this. Currently not used.
-  *
-  * @property {Number} [navigatorWidth=null]
-  *     TODO: Implement this. Currently not used.
-  *
-  * @property {Number} [navigatorPosition=null]
-  *     TODO: Implement this. Currently not used.
+  * @property {String} [navigatorPosition='TOP_RIGHT']
+  *     Valid values are 'TOP_LEFT', 'TOP_RIGHT', 'BOTTOM_LEFT', 'BOTTOM_RIGHT', or 'ABSOLUTE'.<br>
+  *     If 'ABSOLUTE' is specified, then navigatorTop|Left|Height|Width determines the size and position of the navigator minimap in the viewer, and navigatorSizeRatio and navigatorMaintainSizeRatio are ignored.<br>
+  *     For 'TOP_LEFT', 'TOP_RIGHT', 'BOTTOM_LEFT', and 'BOTTOM_RIGHT', the navigatorSizeRatio or navigatorHeight|Width values determine the size of the navigator minimap.
   *
   * @property {Number} [navigatorSizeRatio=0.2]
-  *     Ratio of navigator size to viewer size.
+  *     Ratio of navigator size to viewer size. Ignored if navigatorHeight|Width are specified.
+  *
+  * @property {Boolean} [navigatorMaintainSizeRatio=false]
+  *     If true, the navigator minimap is resized (using navigatorSizeRatio) when the viewer size changes.
+  *
+  * @property {Number|String} [navigatorTop=null]
+  *     Specifies the location of the navigator minimap (see navigatorPosition).
+  *
+  * @property {Number|String} [navigatorLeft=null]
+  *     Specifies the location of the navigator minimap (see navigatorPosition).
+  *
+  * @property {Number|String} [navigatorHeight=null]
+  *     Specifies the size of the navigator minimap (see navigatorPosition).
+  *     If specified, navigatorSizeRatio and navigatorMaintainSizeRatio are ignored.
+  *
+  * @property {Number|String} [navigatorWidth=null]
+  *     Specifies the size of the navigator minimap (see navigatorPosition).
+  *     If specified, navigatorSizeRatio and navigatorMaintainSizeRatio are ignored.
+  *
+  * @property {Boolean} [navigatorAutoResize=true]
+  *     Set to false to prevent polling for navigator size changes. Useful for providing custom resize behavior.
+  *     Setting to false can also improve performance when the navigator is configured to a fixed size.
   *
   * @property {Number} [controlsFadeDelay=2000]
   *     The number of milliseconds to wait once the user has stopped interacting
@@ -719,12 +737,16 @@ window.OpenSeadragon = window.OpenSeadragon || function( options ){
             mouseNavEnabled:         true,  //GENERAL MOUSE INTERACTIVITY
 
             //VIEWPORT NAVIGATOR SETTINGS
-            showNavigator:          false,
-            navigatorId:            null,
-            navigatorHeight:        null,
-            navigatorWidth:         null,
-            navigatorPosition:      null,
-            navigatorSizeRatio:     0.2,
+            showNavigator:              false,
+            navigatorId:                null,
+            navigatorPosition:          null,
+            navigatorSizeRatio:         0.2,
+            navigatorMaintainSizeRatio: false,
+            navigatorTop:               null,
+            navigatorLeft:              null,
+            navigatorHeight:            null,
+            navigatorWidth:             null,
+            navigatorAutoResize:        true,
 
             // INITIAL ROTATION
             degrees:                0,
@@ -4030,13 +4052,15 @@ $.EventSource.prototype = /** @lends OpenSeadragon.EventSource.prototype */{
  * @property {Number} TOP_RIGHT
  * @property {Number} BOTTOM_LEFT
  * @property {Number} BOTTOM_RIGHT
+ * @property {Number} ABSOLUTE
  */
 $.ControlAnchor = {
     NONE: 0,
     TOP_LEFT: 1,
     TOP_RIGHT: 2,
     BOTTOM_RIGHT: 3,
-    BOTTOM_LEFT: 4
+    BOTTOM_LEFT: 4,
+    ABSOLUTE: 5
 };
 
 /**
@@ -4094,14 +4118,30 @@ $.Control = function ( element, options, container ) {
      * @member {Element} wrapper
      * @memberof OpenSeadragon.Control#
      */
-    this.wrapper    = $.makeNeutralElement( "span" );
-    this.wrapper.style.display = "inline-block";
-    this.wrapper.appendChild( this.element );
+    if ( this.anchor == $.ControlAnchor.ABSOLUTE ) {
+        this.wrapper    = $.makeNeutralElement( "div" );
+        this.wrapper.style.position = "absolute";
+        this.wrapper.style.top = typeof ( options.top )  == "number" ? ( options.top + 'px' ) : options.top;
+        this.wrapper.style.left  = typeof ( options.left )  == "number" ?  (options.left + 'px' ) : options.left;
+        this.wrapper.style.height = typeof ( options.height )  == "number" ? ( options.height + 'px' ) : options.height;
+        this.wrapper.style.width  = typeof ( options.width )  == "number" ? ( options.width + 'px' ) : options.width;
+        this.wrapper.style.margin = "0px";
+        this.wrapper.style.padding = "0px";
 
-    if ( this.anchor == $.ControlAnchor.NONE ) {
-        // IE6 fix
-        this.wrapper.style.width = this.wrapper.style.height = "100%";
+        this.element.style.position = "relative";
+        this.element.style.top = "0px";
+        this.element.style.left = "0px";
+        this.element.style.height = "100%";
+        this.element.style.width = "100%";
+    } else {
+        this.wrapper    = $.makeNeutralElement( "span" );
+        this.wrapper.style.display = "inline-block";
+        if ( this.anchor == $.ControlAnchor.NONE ) {
+            // IE6 fix
+            this.wrapper.style.width = this.wrapper.style.height = "100%";
+        }
     }
+    this.wrapper.appendChild( this.element );
 
     if (options.attachToViewer ) {
         if ( this.anchor == $.ControlAnchor.TOP_RIGHT ||
@@ -4145,7 +4185,7 @@ $.Control.prototype = /** @lends OpenSeadragon.Control.prototype */{
      */
     setVisible: function( visible ) {
         this.wrapper.style.display = visible ?
-            "inline-block" :
+            ( this.anchor == $.ControlAnchor.ABSOLUTE ? 'block' : 'inline-block' ) :
             "none";
     },
 
@@ -4292,6 +4332,11 @@ $.Control.prototype = /** @lends OpenSeadragon.Control.prototype */{
                     element.style.position = "relative";
                     element.style.paddingLeft = "0px";
                     element.style.paddingTop = "0px";
+                    break;
+                case $.ControlAnchor.ABSOLUTE:
+                    div = this.container;
+                    element.style.margin = "0px";
+                    element.style.padding = "0px";
                     break;
                 default:
                 case $.ControlAnchor.NONE:
@@ -5301,6 +5346,10 @@ $.extend( $.Viewer.prototype, $.EventSource.prototype, $.ControlDock.prototype, 
 
         }
 
+        if ( this.navigator && this.viewport ) {
+            this.navigator.update( this.viewport );
+        }
+
         /**
          * Raised when the viewer has changed to/from full-page mode (see {@link OpenSeadragon.Viewer#setFullPage}).
          *
@@ -5381,6 +5430,9 @@ $.extend( $.Viewer.prototype, $.EventSource.prototype, $.ControlDock.prototype, 
                         _this.element.style.width = _this.fullPageStyleWidth;
                         _this.element.style.height = _this.fullPageStyleHeight;
                     }
+                }
+                if ( _this.navigator && _this.viewport ) {
+                    _this.navigator.update( _this.viewport );
                 }
                 /**
                  * Raised when the viewer has changed to/from full-screen mode (see {@link OpenSeadragon.Viewer#setFullScreen}).
@@ -5860,16 +5912,20 @@ function openTileSource( viewer, source ) {
             _this.navigator.open( source );
         } else {
             _this.navigator = new $.Navigator({
-                id:          _this.navigatorId,
-                position:    _this.navigatorPosition,
-                sizeRatio:   _this.navigatorSizeRatio,
-                height:      _this.navigatorHeight,
-                width:       _this.navigatorWidth,
-                tileSources: source,
-                tileHost:    _this.tileHost,
-                prefixUrl:   _this.prefixUrl,
-                overlays:    _this.overlays,
-                viewer:      _this
+                id:                _this.navigatorId,
+                position:          _this.navigatorPosition,
+                sizeRatio:         _this.navigatorSizeRatio,
+                maintainSizeRatio: _this.navigatorMaintainSizeRatio,
+                top:               _this.navigatorTop,
+                left:              _this.navigatorLeft,
+                width:             _this.navigatorWidth,
+                height:            _this.navigatorHeight,
+                autoResize:        _this.navigatorAutoResize,
+                tileSources:       source,
+                tileHost:          _this.tileHost,
+                prefixUrl:         _this.prefixUrl,
+                overlays:          _this.overlays,
+                viewer:            _this
             });
         }
     }
@@ -6590,6 +6646,12 @@ $.Navigator = function( options ){
                options.controlOptions.anchor = $.ControlAnchor.TOP_RIGHT;
             } else if( 'TOP_LEFT' == options.position ){
                options.controlOptions.anchor = $.ControlAnchor.TOP_LEFT;
+            } else if( 'ABSOLUTE' == options.position ){
+               options.controlOptions.anchor = $.ControlAnchor.ABSOLUTE;
+               options.controlOptions.top = options.top;
+               options.controlOptions.left = options.left;
+               options.controlOptions.height = options.height;
+               options.controlOptions.width = options.width;
             }
         }
         
@@ -6616,7 +6678,8 @@ $.Navigator = function( options ){
         showSequenceControl:    false,
         immediateRender:        true,
         blendTime:              0,
-        animationTime:          0
+        animationTime:          0,
+        autoResize:             options.autoResize
     });
 
     options.minPixelRatio = this.minPixelRatio = viewer.minPixelRatio;
@@ -6663,7 +6726,7 @@ $.Navigator = function( options ){
         style.cssFloat      = 'left'; //Firefox
         style.styleFloat    = 'left'; //IE
         style.zIndex        = 999999999;
-        style.cursor        = 'default';
+        style.cursor        = 'pointer';
     }( this.displayRegion.style, this.borderWidth ));
 
 
@@ -6690,14 +6753,21 @@ $.Navigator = function( options ){
         options.controlOptions
     );
 
-    if( options.width && options.height ){
-        this.element.style.width  = options.width + 'px';
-        this.element.style.height = options.height + 'px';
-    } else {
-        viewerSize = $.getElementSize( viewer.element );
-        this.element.style.width  = ( viewerSize.x * options.sizeRatio ) + 'px';
-        this.element.style.height = ( viewerSize.y * options.sizeRatio ) + 'px';
+    if ( options.controlOptions.anchor != $.ControlAnchor.ABSOLUTE ) {
+        if ( options.width && options.height ) {
+            this.element.style.height = typeof ( options.height )  == "number" ? ( options.height + 'px' ) : options.height;
+            this.element.style.width  = typeof ( options.width )  == "number" ? ( options.width + 'px' ) : options.width;
+        } else {
+            viewerSize = $.getElementSize( viewer.element );
+            this.element.style.height = ( viewerSize.y * options.sizeRatio ) + 'px';
+            this.element.style.width  = ( viewerSize.x * options.sizeRatio ) + 'px';
+            if ( options.maintainSizeRatio ) {
+                this.oldViewerSize = viewerSize;
+            }
+        }
     }
+
+    this.oldContainerSize = new $.Point( 0, 0 );
 
     $.Viewer.apply( this, [ options ] );
 
@@ -6712,18 +6782,63 @@ $.Navigator = function( options ){
 $.extend( $.Navigator.prototype, $.EventSource.prototype, $.Viewer.prototype, /** @lends OpenSeadragon.Navigator.prototype */{
 
     /**
+     * Used to notify the navigator when its size has changed. 
+     * Especially useful when {@link OpenSeadragon.Options}.navigatorAutoResize is set to false and the navigator is resizable.
      * @function
      */
-    update: function( viewport ){
+    updateSize: function () {
+        if ( this.viewport ) {
+            var containerSize = new $.Point(
+                    (this.container.clientWidth === 0 ? 1 : this.container.clientWidth),
+                    (this.container.clientHeight === 0 ? 1 : this.container.clientHeight)
+                );
+            if ( !containerSize.equals( this.oldContainerSize ) ) {
+                var oldBounds = this.viewport.getBounds();
+                var oldCenter = this.viewport.getCenter();
+                this.viewport.resize( containerSize, true );
+                var imageHeight = 1 / this.source.aspectRatio;
+                var newWidth = oldBounds.width <= 1 ? oldBounds.width : 1;
+                var newHeight = oldBounds.height <= imageHeight ?
+                    oldBounds.height : imageHeight;
+                var newBounds = new $.Rect(
+                    oldCenter.x - ( newWidth / 2.0 ),
+                    oldCenter.y - ( newHeight / 2.0 ),
+                    newWidth,
+                    newHeight
+                    );
+                this.viewport.fitBounds( newBounds, true );
+                this.oldContainerSize = containerSize;
+                this.drawer.update();
+            }
+        }
+    },
 
-        var bounds,
+    /**
+     * Used to update the navigator minimap's viewport rectangle when a change in the viewer's viewport occurs.
+     * @function
+     * @param {OpenSeadragon.Viewport} The viewport this navigator is tracking.
+     */
+    update: function( viewport ) {
+
+        var viewerSize,
+            bounds,
             topleft,
             bottomright;
 
-        if( viewport && this.viewport ){
+        if ( this.maintainSizeRatio ) {
+            viewerSize = $.getElementSize( this.viewer.element );
+            if ( !viewerSize.equals( this.oldViewerSize ) ) {
+                this.element.style.height = ( viewerSize.y * this.sizeRatio ) + 'px';
+                this.element.style.width  = ( viewerSize.x * this.sizeRatio ) + 'px';
+                this.oldViewerSize = viewerSize;
+                this.updateSize();
+            }
+        }
+
+        if( viewport && this.viewport ) {
             bounds      = viewport.getBounds( true );
-            topleft     = this.viewport.pixelFromPoint( bounds.getTopLeft());
-            bottomright = this.viewport.pixelFromPoint( bounds.getBottomRight()).minus(this.totalBorderWidths);
+            topleft     = this.viewport.pixelFromPoint( bounds.getTopLeft(), false );
+            bottomright = this.viewport.pixelFromPoint( bounds.getBottomRight(), false ).minus( this.totalBorderWidths );
 
             //update style for navigator-box
             (function(style) {
@@ -6742,7 +6857,8 @@ $.extend( $.Navigator.prototype, $.EventSource.prototype, $.Viewer.prototype, /*
 
     },
 
-    open: function( source ){
+    open: function( source ) {
+        this.updateSize();
         var containerSize = this.viewer.viewport.containerSize.times( this.sizeRatio );
         if( source.tileSize > containerSize.x ||
             source.tileSize > containerSize.y ){
@@ -6769,7 +6885,7 @@ function onCanvasClick( event ) {
         dimensions;
     if (! this.drag) {
         if ( this.viewer.viewport ) {
-            this.viewer.viewport.panTo( this.viewport.pointFromPixel( event.position, true ) );
+            this.viewer.viewport.panTo( this.viewport.pointFromPixel( event.position ) );
             this.viewer.viewport.applyConstraints();
         }
     }
@@ -6840,6 +6956,7 @@ function onCanvasScroll( event ) {
         shift: event.shift,
         originalEvent: event.originalEvent
     });
+
     //dont scroll the page up and down if the user is scrolling
     //in the navigator
     return false;
@@ -12040,6 +12157,7 @@ $.Drawer.prototype = /** @lends OpenSeadragon.Drawer.prototype */{
             this.downloading++;
 
             image = new Image();
+            image.crossOrigin = 'Anonymous';
 
             complete = function( imagesrc, resultingImage ){
                 _this.downloading--;

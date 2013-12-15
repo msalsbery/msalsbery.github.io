@@ -26,23 +26,31 @@
         collapsedWidth = _$header.outerWidth(),
         collapsedHeight = _$headerContainer.outerHeight(),
         viewer = OpenSeadragon({
-                     //debugMode: true,
-                     //showReferenceStrip: true,
-                     id: 'viewerDiv1',
-                     prefixUrl: 'content/images/openseadragon/',
-                     useCanvas: true,
-                     showNavigationControl: true,
-                     navigationControlAnchor: OpenSeadragon.ControlAnchor.BOTTOM_LEFT,
-                     showSequenceControl: true,
-                     sequenceControlAnchor: OpenSeadragon.ControlAnchor.BOTTOM_LEFT,
-                     showNavigator: true,
-                     navigatorId: 'navigatorDiv1',
-                     visibilityRatio: 0.1,
-                     minZoomLevel: 0.001,
-                     maxZoomLevel: 10,
-                     zoomPerClick: 1.4,
-                     autoResize: false, // If false, we have to handle resizing of the viewer
-                     tileSources: ['data/testpattern.dzi', 'data/tall.dzi', 'data/wide.dzi', tileSource]
+                    //debugMode: true,
+                    //showReferenceStrip: true,
+                    id: 'viewerDiv1',
+                    prefixUrl: 'content/images/openseadragon/',
+                    useCanvas: true,
+                    showNavigationControl: true,
+                    navigationControlAnchor: OpenSeadragon.ControlAnchor.BOTTOM_LEFT,
+                    showSequenceControl: true,
+                    sequenceControlAnchor: OpenSeadragon.ControlAnchor.BOTTOM_LEFT,
+                    showNavigator: true,
+                    navigatorId: 'navigatorDiv1',
+                    //navigatorPosition: 'ABSOLUTE', //'TOP_LEFT', 'TOP_RIGHT', 'BOTTOM_LEFT', 'BOTTOM_RIGHT', 'ABSOLUTE'
+                    //navigatorSizeRatio: 0.2,
+                    //navigatorMaintainSizeRatio: true,
+                    //navigatorTop: 10,
+                    //navigatorLeft: 10,
+                    //navigatorHeight: 300,
+                    //navigatorWidth: 300,
+                    navigatorAutoResize: false,
+                    visibilityRatio: 0.1,
+                    minZoomLevel: 0.001,
+                    maxZoomLevel: 10,
+                    zoomPerClick: 1.4,
+                    autoResize: false, // If false, we have to handle resizing of the viewer
+                    tileSources: ['data/testpattern.dzi', 'data/tall.dzi', 'data/wide.dzi', tileSource]
                  }),
         imagingHelper = viewer.activateImagingHelper({onImageViewChanged: onImageViewChanged}),
         viewerInputHook = viewer.addViewerInputHook({hooks: [
@@ -52,6 +60,62 @@
         ]}),
         _$osdCanvas = null,
         _$svgOverlay = $('.imgvwrSVG');
+
+        OpenSeadragon({
+                    id: 'viewerDiv2',
+                    prefixUrl: 'content/images/openseadragon/',
+                    useCanvas: true,
+                    showNavigationControl: true,
+                    navigationControlAnchor: OpenSeadragon.ControlAnchor.TOP_LEFT,
+                    showSequenceControl: true,
+                    sequenceControlAnchor: OpenSeadragon.ControlAnchor.TOP_LEFT,
+                    showNavigator: true,
+                    tileSources: ['data/testpattern.dzi', 'data/tall.dzi', 'data/wide.dzi', tileSource]
+        });
+
+        OpenSeadragon({
+                    id: 'viewerDiv3',
+                    prefixUrl: 'content/images/openseadragon/',
+                    useCanvas: true,
+                    showNavigationControl: true,
+                    navigationControlAnchor: OpenSeadragon.ControlAnchor.TOP_LEFT,
+                    showSequenceControl: true,
+                    sequenceControlAnchor: OpenSeadragon.ControlAnchor.TOP_LEFT,
+                    showNavigator: true,
+                    navigatorMaintainSizeRatio: true,
+                    tileSources: ['data/testpattern.dzi', 'data/tall.dzi', 'data/wide.dzi', tileSource]
+        });
+
+        OpenSeadragon({
+                    id: 'viewerDiv4',
+                    prefixUrl: 'content/images/openseadragon/',
+                    useCanvas: true,
+                    showNavigationControl: true,
+                    navigationControlAnchor: OpenSeadragon.ControlAnchor.BOTTOM_LEFT,
+                    showSequenceControl: true,
+                    sequenceControlAnchor: OpenSeadragon.ControlAnchor.BOTTOM_LEFT,
+                    showNavigator: true,
+                    navigatorPosition: 'BOTTOM_RIGHT',
+                    navigatorMaintainSizeRatio: true,
+                    tileSources: ['data/testpattern.dzi', 'data/tall.dzi', 'data/wide.dzi', tileSource]
+        });
+
+        OpenSeadragon({
+                    id: 'viewerDiv5',
+                    prefixUrl: 'content/images/openseadragon/',
+                    useCanvas: true,
+                    showNavigationControl: true,
+                    navigationControlAnchor: OpenSeadragon.ControlAnchor.TOP_RIGHT,
+                    showSequenceControl: true,
+                    sequenceControlAnchor: OpenSeadragon.ControlAnchor.TOP_RIGHT,
+                    showNavigator: true,
+                    navigatorPosition: 'ABSOLUTE',
+                    navigatorTop: 10,
+                    navigatorLeft: 10,
+                    navigatorHeight: 150,
+                    navigatorWidth: 175,
+                    tileSources: ['data/testpattern.dzi', 'data/tall.dzi', 'data/wide.dzi', tileSource]
+        });
 
     // Example SVG annotation overlay.  We use these observables to keep the example annotation sync'd with the image zoom/pan
     var annoGroupTranslateX = ko.observable(0.0),
@@ -415,6 +479,7 @@
         _$contentContainer.height(newheight);
         _$content.width(wrapperwidth);
         _$content.height(newheight);
+        viewer.navigator.updateSize();
         viewer.navigator.update(viewer.viewport);
     }
 
