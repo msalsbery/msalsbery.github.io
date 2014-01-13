@@ -25,6 +25,26 @@ code
     padding: 0 100px 0 100px;
 }
 
+.navigator-box
+{
+    overflow: hidden;
+    margin: 0 auto 4px auto;
+    padding: 0px;
+    width: 175px;
+    height: 150px;
+    border: 2px solid #cccccc;
+    background-color: #eeeeee;
+}
+
+.navigator-div
+{
+    margin: 0px;
+    padding: 0px;
+    width: 100%;
+    height: 100%;
+}
+
+
 .openseadragon1 
 {
     height: 350px;

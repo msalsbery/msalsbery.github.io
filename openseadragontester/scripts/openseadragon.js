@@ -1,6 +1,6 @@
 //! OpenSeadragon 1.0.0
 //! Built on 2014-01-13
-//! Git commit: v1.0.0-32-g23954d0
+//! Git commit: v1.0.0-33-g7ce552c
 //! http://openseadragon.github.io
 //! License: http://openseadragon.github.io/license/
 
@@ -6691,14 +6691,16 @@ $.Navigator = function( options ){
     this.totalBorderWidths = new $.Point(this.borderWidth*2, this.borderWidth*2).minus(this.fudge);
 
 
-    (function( style, borderWidth ){
-        style.margin        = '0px';
-        style.border        = borderWidth + 'px solid #555';
-        style.padding       = '0px';
-        style.background    = '#000';
-        style.opacity       = 0.8;
-        style.overflow      = 'hidden';
-    }( this.element.style, this.borderWidth));
+    if ( options.controlOptions.anchor != $.ControlAnchor.NONE ) {
+        (function( style, borderWidth ){
+            style.margin        = '0px';
+            style.border        = borderWidth + 'px solid #555';
+            style.padding       = '0px';
+            style.background    = '#000';
+            style.opacity       = 0.8;
+            style.overflow      = 'hidden';
+        }( this.element.style, this.borderWidth));
+    }
 
     this.displayRegion           = $.makeNeutralElement( "div" );
     this.displayRegion.id        = this.element.id + '-displayregion';
@@ -6753,7 +6755,7 @@ $.Navigator = function( options ){
         options.controlOptions
     );
 
-    if ( options.controlOptions.anchor != $.ControlAnchor.ABSOLUTE ) {
+    if ( options.controlOptions.anchor != $.ControlAnchor.ABSOLUTE && options.controlOptions.anchor != $.ControlAnchor.NONE ) {
         if ( options.width && options.height ) {
             this.element.style.height = typeof ( options.height )  == "number" ? ( options.height + 'px' ) : options.height;
             this.element.style.width  = typeof ( options.width )  == "number" ? ( options.width + 'px' ) : options.width;

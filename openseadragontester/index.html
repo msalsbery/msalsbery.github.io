@@ -103,17 +103,44 @@
     </div>
 
 
+    <div class="viewer-box">
+        <p class="viewer-description">Hosted in External Element</p>
+        <pre><code>
+            OpenSeadragon({
+                        id: 'osd5',
+                        prefixUrl: 'content/images/openseadragon/',
+                        useCanvas: true,
+                        showNavigationControl: true,
+                        navigationControlAnchor: OpenSeadragon.ControlAnchor.TOP_LEFT,
+                        showSequenceControl: true,
+                        sequenceControlAnchor: OpenSeadragon.ControlAnchor.TOP_LEFT,
+                        showNavigator: true,
+                        navigatorId: 'osdnavigator5',
+                        tileSources: tileSources
+            });
+        </code></pre>
+        <div class="navigator-box">
+            <div class="navigator-div" id="osdnavigator5"></div>
+        </div>
+        <div class="viewer-container">
+            <div id="osd5" class="openseadragon1"></div>
+        </div>
+    </div>
+
+
     <script type="text/javascript">
-        var tileSources = [
-            '../openseadragonimaging/data/testpattern.dzi',
-            '../openseadragonimaging/data/tall.dzi',
-            '../openseadragonimaging/data/wide.dzi',
-            new OpenSeadragon.LegacyTileSource( [{
-                url: '../openseadragonimaging/data/dog_radiograph_2.jpg',
-                width: 1909,
-                height: 1331
-            }] )
-        ];
+        var tileSourcesPrefix = '../openseadragonimaging/data/',
+        //var tileSourcesPrefix = '/media/openseadragonsamples/',
+            tileSources = [
+                tileSourcesPrefix + 'testpattern.dzi',
+                tileSourcesPrefix + 'tall.dzi',
+                tileSourcesPrefix + 'wide.dzi',
+                new OpenSeadragon.LegacyTileSource( [{
+                    url: tileSourcesPrefix + 'dog_radiograph_2.jpg',
+                    width: 1909,
+                    height: 1331
+                }] )
+            ];
 
         hljs.initHighlightingOnLoad();
 
@@ -170,6 +197,19 @@
                     navigatorLeft: 10,
                     navigatorHeight: 150,
                     navigatorWidth: 175,
+                    tileSources: tileSources
+        });
+
+        OpenSeadragon({
+                    id: 'osd5',
+                    prefixUrl: 'content/images/openseadragon/',
+                    useCanvas: true,
+                    showNavigationControl: true,
+                    navigationControlAnchor: OpenSeadragon.ControlAnchor.TOP_LEFT,
+                    showSequenceControl: true,
+                    sequenceControlAnchor: OpenSeadragon.ControlAnchor.TOP_LEFT,
+                    showNavigator: true,
+                    navigatorId: 'osdnavigator5',
                     tileSources: tileSources
         });
     </script>
