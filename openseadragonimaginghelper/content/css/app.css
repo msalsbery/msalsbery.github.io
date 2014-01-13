@@ -170,7 +170,7 @@ i.busy-indicator.active
     visibility: visible;
 }
 
-.imgNavigator
+.navigatorExpander
 {
     visibility: hidden;
     overflow: hidden;
