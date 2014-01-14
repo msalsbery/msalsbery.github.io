@@ -1,9 +1,9 @@
-//! OpenSeadragonImagingHelper 1.0.0
-//! Build date: 2013-12-03
-//! Git commit: v1.0.0-14-g9392e24-dirty
+//! OpenSeadragonImagingHelper 1.1.0
+//! Build date: 2014-01-13
+//! Git commit: v1.0.0-17-g2322896
 //! https://github.com/msalsbery/OpenSeadragonImagingHelper
 /* 
- * Copyright (c) 2013 Mark Salsbery
+ * Copyright (c) 2013-2014 Mark Salsbery
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy of
  * this software and associated documentation files (the "Software"), to deal in
@@ -25,65 +25,36 @@
 
 
 /**
- * The OpenSeadragon namespace
- * @external OpenSeadragon
- * @see {@link http://openseadragon.github.io/docs/symbols/OpenSeadragon.html OpenSeadragon Documentation}
+ * @file
+ * @version  OpenSeadragonImagingHelper 1.1.0
+ * @author Mark Salsbery <msalsbery@hotmail.com>
+ *
  */
 
 /**
- * @external "OpenSeadragon.Viewer"
- * @see {@link http://openseadragon.github.io/docs/symbols/OpenSeadragon.Viewer.html OpenSeadragon.Viewer Documentation}
+ * @module openseadragon-imaginghelper
+ * @version  OpenSeadragonImagingHelper 1.1.0
+ *
  */
 
-/**
- * @external "OpenSeadragon.EventSource"
- * @see {@link http://openseadragon.github.io/docs/symbols/OpenSeadragon.EventHandler.html OpenSeadragon.EventSource Documentation}
- */
 
-/**
- * @external "OpenSeadragon.Point"
- * @see {@link http://openseadragon.github.io/docs/symbols/OpenSeadragon.Point.html OpenSeadragon.Point Documentation}
- * @property {Number} x
- * @property {Number} y
- */
+(function(OSD, $, undefined) {
 
-/**
- * @namespace OpenSeadragon
- * @extends external:OpenSeadragon
- */
-(function($) {
-
-    //if (!$.version || $.version.major < 1) {
-    //    throw new Error('OpenSeadragonViewerImagingHelper requires OpenSeadragon version 0.9.131+');
+    //if (!OSD.version || OSD.version.major < 1) {
+    //    throw new Error('OpenSeadragonImagingHelper requires OpenSeadragon version 0.9.131+');
     //}
-
-    /**
-     * Event handler method signature used by all OpenSeadragon events.
-     *
-     * @callback EventHandler
-     * @memberof OpenSeadragon
-     * @param {Object} event - See individual events for event properties passed.
-     */
-
-    /**
-     *
-     * @class OpenSeadragon.Viewer
-     * @memberof OpenSeadragon
-     * @extends external:"OpenSeadragon.Viewer"
-     *
-     **/
 
     /**
      * Creates a new ImagingHelper attached to the viewer.
      *
      * @method activateImagingHelper
-     * @memberof OpenSeadragon.Viewer#
+     * @memberof external:"OpenSeadragon.Viewer"#
      * @param {Object} options
-     * @param {OpenSeadragon.EventHandler} [options.onImageViewChanged] - {@link OpenSeadragon.ImagingHelper.event:image-view-changed} handler method.
-     * @returns {OpenSeadragon.ImagingHelper}
+     * @param {OpenSeadragon.EventHandler} [options.onImageViewChanged] - {@link OpenSeadragonImaging.ImagingHelper.event:image-view-changed} handler method.
+     * @returns {OpenSeadragonImaging.ImagingHelper}
      *
      **/
-    $.Viewer.prototype.activateImagingHelper = function(options) {
+    OSD.Viewer.prototype.activateImagingHelper = function(options) {
         if (!this.imagingHelper) {
             options = options || {};
             options.viewer = this;
@@ -97,11 +68,11 @@
      *
      * @class ImagingHelper
      * @classdesc Provides imaging helper methods and properties for the OpenSeadragon viewer.
-     * @memberof OpenSeadragon
+     * @memberof OpenSeadragonImaging
      * @extends external:"OpenSeadragon.EventSource"
      * @param {Object} options
      * @param {external:"OpenSeadragon.Viewer"} options.viewer - Required! Reference to OpenSeadragon viewer to attach to.
-     * @param {OpenSeadragon.EventHandler} [options.onImageViewChanged] - {@link OpenSeadragon.ImagingHelper.event:image-view-changed} handler method.
+     * @param {external:"OpenSeadragon.EventHandler"} [options.onImageViewChanged] - {@link OpenSeadragonImaging.ImagingHelper.event:image-view-changed} handler method.
      *
      **/
     $.ImagingHelper = function(options) {
@@ -114,41 +85,42 @@
             throw new Error('Viewer already has an ImagingHelper.');
         }
 
-        // Bring in base classes
-        $.EventSource.call(this);
-        
         this._viewer = options.viewer;
+
+        // Call base class constructor
+        OSD.EventSource.call(this);
+        
+        // Add this object to the Viewer        
         this._viewer.imagingHelper = this;
 
         /**
          * A reference to the options passed at creation.
          * @member {object} options
-         * @memberof OpenSeadragon.ImagingHelper#
+         * @memberof OpenSeadragonImaging.ImagingHelper#
          * @property {external:"OpenSeadragon.Viewer"} viewer - Reference to OpenSeadragon viewer this ImagingHelper is attached to.
-         * @property {OpenSeadragon.EventHandler} [onImageViewChanged] - {@link OpenSeadragon.ImagingHelper.event:image-view-changed} handler method.
+         * @property {OpenSeadragon.EventHandler} [onImageViewChanged] - {@link OpenSeadragonImaging.ImagingHelper.event:image-view-changed} handler method.
          */
         this.options = options;
         /**
          * The image's native width in pixels.
          * @member {number} imgWidth
-         * @memberof OpenSeadragon.ImagingHelper#
+         * @memberof OpenSeadragonImaging.ImagingHelper#
          */
         this.imgWidth = 0.0;
         /**
          * The image's native height in pixels.
          * @member {number} imgHeight
-         * @memberof OpenSeadragon.ImagingHelper#
+         * @memberof OpenSeadragonImaging.ImagingHelper#
          */
         this.imgHeight = 0.0;
         /**
          * The image's aspect ratio (width / height).
          * @member {number} imgAspectRatio
-         * @memberof OpenSeadragon.ImagingHelper#
+         * @memberof OpenSeadragonImaging.ImagingHelper#
          */
         this.imgAspectRatio = 0.0;
 
-        // TODO Scope these private
-
+        // Private
         this._zoomFactor = 1.0;
         this._minZoom = 0.001;
         this._maxZoom = 10;
@@ -162,23 +134,22 @@
         this._viewportOrigin = new OpenSeadragon.Point(0, 0);
         this._viewportCenter = new OpenSeadragon.Point(0, 0);
 
+        // Wire up event handlers
         if (options.onImageViewChanged) {
             this.addHandler('image-view-changed', options.onImageViewChanged);
         }
-
-        this._viewer.addHandler('open', $.delegate(this, this.onOpen));
-        this._viewer.addHandler('close', $.delegate(this, this.onClose));
-        this._viewer.addHandler('animation', $.delegate(this, this.onAnimation));
-        this._viewer.addHandler('animation-finish', $.delegate(this, this.onAnimationFinish));
-        this._viewer.addHandler('resize', $.delegate(this, this.onResize));
-        this._viewer.addHandler('full-page', $.delegate(this, this.onFullPage));
-        this._viewer.addHandler('full-screen', $.delegate(this, this.onFullScreen));
+        this._viewer.addHandler('open', OSD.delegate(this, onOpen));
+        this._viewer.addHandler('close', OSD.delegate(this, onClose));
+        this._viewer.addHandler('animation', OSD.delegate(this, onAnimation));
+        this._viewer.addHandler('animation-finish', OSD.delegate(this, onAnimationFinish));
+        this._viewer.addHandler('resize', OSD.delegate(this, onResize));
+        this._viewer.addHandler('full-page', OSD.delegate(this, onFullPage));
+        this._viewer.addHandler('full-screen', OSD.delegate(this, onFullScreen));
     };
-
 
     /**
      * ImagingHelper version.
-     * @member {Object} OpenSeadragon.ImagingHelper.version
+     * @member {Object} OpenSeadragonImaging.ImagingHelper.version
      * @property {String} versionStr - The version number as a string ('major.minor.revision').
      * @property {Number} major - The major version number.
      * @property {Number} minor - The minor version number.
@@ -186,17 +157,77 @@
      */
     /* jshint ignore:start */
     $.ImagingHelper.version = {
-        versionStr: '1.0.0',
+        versionStr: '1.1.0',
         major: 1,
-        minor: 0,
+        minor: 1,
         revision: 0
     };
     /* jshint ignore:end */
 
 
-    $.extend($.ImagingHelper.prototype, $.EventSource.prototype,
-    /** @lends OpenSeadragon.ImagingHelper.prototype */
+    // Inherit OpenSeadragon.EventSource
+    // TODO Drop IE<9 support and use these. For now we'll use the OpenSeadragon.extend() call below...
+    //$.ImagingHelper.prototype = Object.create(OSD.EventSource.prototype);
+    //Object.defineProperty($.ImagingHelper.prototype, 'constructor', {enumerable: false, value: $.ImagingHelper});
+
+
+    // TODO Drop IE<9 support and use Object.create()/Object.defineProperty(). For now we'll inherit OpenSeadragon.EventSource this way...
+    OSD.extend($.ImagingHelper.prototype, OSD.EventSource.prototype,
+    /** @lends OpenSeadragonImaging.ImagingHelper.prototype */
     {
+        /*
+         * 
+         * Raises the {@link OpenSeadragonImaging.ImagingHelper.image-view-changed} event
+         * 
+         * @private
+         * @method
+         *
+         **/
+        _raiseImageViewChanged: function () {
+            /**
+             * Raised whenever the viewer's zoom or pan changes and the ImagingHelper's properties have been updated.
+             * @event image-view-changed
+             * @memberof OpenSeadragonImaging.ImagingHelper
+             * @type {Object}
+             * @property {OpenSeadragonImaging.ImagingHelper} eventSource - A reference to the ImagingHelper which raised the event.
+             * @property {number} viewportWidth - Width of viewport in logical coordinates.
+             * @property {number} viewportHeight - Height of viewport in logical coordinates.
+             * @property {external:"OpenSeadragon.Point"} viewportOrigin - Center of viewport in logical coordinates.
+             * @property {external:"OpenSeadragon.Point"} viewportCenter - Center of viewport in logical coordinates.
+             * @property {number} zoomFactor - Zoom factor.
+             * @property {Object} [userData=null] - Arbitrary subscriber-defined object.
+             */
+            this.raiseEvent('image-view-changed', {
+                viewportWidth:  this._viewportWidth,
+                viewportHeight: this._viewportHeight,
+                viewportOrigin: this._viewportOrigin,
+                viewportCenter: this._viewportCenter,
+                zoomFactor:     this._zoomFactor
+            });
+        },
+
+        /*
+         * 
+         * Called whenever the OpenSeadragon viewer zoom/pan changes
+         * 
+         * @private
+         * @method
+         * @fires OpenSeadragonImaging.ImagingHelper.image-view-changed
+         *
+         **/
+        _trackZoomPan: function () {
+            var boundsRect = this._viewer.viewport.getBounds(true);
+            this._viewportOrigin.x = boundsRect.x;
+            this._viewportOrigin.y = boundsRect.y * this.imgAspectRatio;
+            this._viewportWidth = boundsRect.width;
+            this._viewportHeight = boundsRect.height * this.imgAspectRatio;
+            this._viewportCenter.x = this._viewportOrigin.x + (this._viewportWidth / 2.0);
+            this._viewportCenter.y = this._viewportOrigin.y + (this._viewportHeight / 2.0);
+            this._zoomFactor = this.getViewerContainerSize().x / (this._viewportWidth * this.imgWidth);
+
+            this._raiseImageViewChanged();
+        },
+
         /**
          * Gets the size of the viewer's container element.
          *
@@ -207,11 +238,11 @@
         getViewerContainerSize: function () {
             //return this._viewer.viewport.getContainerSize();
             var element = this._viewer.container;
-            //return new $.Point(
+            //return new OSD.Point(
             //    (element.clientWidth === 0 ? 1 : element.clientWidth),
             //    (element.clientHeight === 0 ? 1 : element.clientHeight)
             //);
-            return new $.Point(element.clientWidth, element.clientHeight);
+            return new OSD.Point(element.clientWidth, element.clientHeight);
         },
 
         /**
@@ -220,7 +251,7 @@
          * and same center point.
          *
          * @method
-         * @fires OpenSeadragon.ImagingHelper.image-view-changed
+         * @fires OpenSeadragonImaging.ImagingHelper.image-view-changed
          *
          **/
         notifyResize: function () {
@@ -230,12 +261,13 @@
             if (this._haveImage) {
                 newViewerSize = this.getViewerContainerSize();
                 if (!newViewerSize.equals(this._viewerSize)) {
+                    this._viewerSize = newViewerSize;
                     center = new OpenSeadragon.Point(this._viewportCenter.x, this._viewportCenter.y / this.imgAspectRatio);
                     zoom = this._zoomFactor;
                     this._viewer.viewport.resize(newViewerSize, false);
                     this._viewer.viewport.zoomTo((zoom * this.imgWidth) / newViewerSize.x, null, true);
                     this._viewer.viewport.panTo(center, true);
-                    this.raiseImageViewChanged();
+                    this._raiseImageViewChanged();
                 }
             }
         },
@@ -649,98 +681,82 @@
          **/
         dataToPhysicalY: function (y) {
             return (this._haveImage && this.imgHeight > 0) ? ((((y / this.imgHeight) - this._viewportOrigin.y) / this._viewportHeight) * this.getViewerContainerSize().y) : 0;
-        },
-
-        /*
-         * 
-         * Raises the {@link OpenSeadragon.ImagingHelper.image-view-changed} event
-         * 
-         * @private
-         * @method
-         *
-         **/
-        raiseImageViewChanged: function () {
-            /**
-             * Raised whenever the viewer's zoom or pan changes and the ImagingHelper's properties have been updated.
-             * @event image-view-changed
-             * @memberof OpenSeadragon.ImagingHelper
-             * @type {Object}
-             * @property {OpenSeadragon.ImagingHelper} eventSource - A reference to the ImagingHelper which raised the event.
-             * @property {number} viewportWidth - Width of viewport in logical coordinates.
-             * @property {number} viewportHeight - Height of viewport in logical coordinates.
-             * @property {external:"OpenSeadragon.Point"} viewportOrigin - Center of viewport in logical coordinates.
-             * @property {external:"OpenSeadragon.Point"} viewportCenter - Center of viewport in logical coordinates.
-             * @property {number} zoomFactor - Zoom factor.
-             * @property {Object} [userData=null] - Arbitrary subscriber-defined object.
-             */
-            this.raiseEvent('image-view-changed', {
-                viewportWidth:  this._viewportWidth,
-                viewportHeight: this._viewportHeight,
-                viewportOrigin: this._viewportOrigin,
-                viewportCenter: this._viewportCenter,
-                zoomFactor:     this._zoomFactor
-            });
-        },
-
-        /*
-         * 
-         * Called whenever the OpenSeadragon viewer zoom/pan changes
-         * 
-         * @private
-         * @method
-         * @fires OpenSeadragon.ImagingHelper.image-view-changed
-         *
-         **/
-        trackZoomPan: function () {
-            var boundsRect = this._viewer.viewport.getBounds(true);
-            this._viewportOrigin.x = boundsRect.x;
-            this._viewportOrigin.y = boundsRect.y * this.imgAspectRatio;
-            this._viewportWidth = boundsRect.width;
-            this._viewportHeight = boundsRect.height * this.imgAspectRatio;
-            this._viewportCenter.x = this._viewportOrigin.x + (this._viewportWidth / 2.0);
-            this._viewportCenter.y = this._viewportOrigin.y + (this._viewportHeight / 2.0);
-            this._zoomFactor = this.getViewerContainerSize().x / (this._viewportWidth * this.imgWidth);
-
-            this.raiseImageViewChanged();
-        },
-
-        onOpen: function() {
-            this._haveImage = true;
-            this.imgWidth = this._viewer.viewport.contentSize.x;
-            this.imgHeight = this._viewer.viewport.contentSize.y;
-            this.imgAspectRatio = this.imgWidth / this.imgHeight;
-            this.trackZoomPan();
-        },
-
-        onClose: function() {
-            this._haveImage = false;
-            this.imgWidth = 0.0;
-            this.imgHeight = 0.0;
-            this.imgAspectRatio = 0.0;
-        },
-
-        onAnimation: function() {
-            this.trackZoomPan();
-        },
-
-        onAnimationFinish: function() {
-            this.trackZoomPan();
-        },
-
-        onResize: function() {
-            if (this._viewer && this._viewer.autoResize) {
-                this.trackZoomPan();
-            }
-        },
-
-        onFullPage: function() {
-            this.trackZoomPan();
-        },
-
-        onFullScreen: function() {
-            this.trackZoomPan();
         }
 
     });
 
-}(OpenSeadragon));
+
+    /*
+     * @private
+     * @method
+     *
+     **/
+    function onOpen() {
+        this._haveImage = true;
+        this.imgWidth = this._viewer.viewport.contentSize.x;
+        this.imgHeight = this._viewer.viewport.contentSize.y;
+        this.imgAspectRatio = this.imgWidth / this.imgHeight;
+        this._trackZoomPan();
+    }
+
+    /*
+     * @private
+     * @method
+     *
+     **/
+    function onClose() {
+        this._haveImage = false;
+        this.imgWidth = 0.0;
+        this.imgHeight = 0.0;
+        this.imgAspectRatio = 0.0;
+    }
+
+    /*
+     * @private
+     * @method
+     *
+     **/
+    function onAnimation() {
+        this._trackZoomPan();
+    }
+
+    /*
+     * @private
+     * @method
+     *
+     **/
+    function onAnimationFinish() {
+        this._trackZoomPan();
+    }
+
+    /*
+     * @private
+     * @method
+     *
+     **/
+    function onResize() {
+        if (this._viewer && this._viewer.autoResize) {
+            this._trackZoomPan();
+        }
+    }
+
+    /*
+     * @private
+     * @method
+     *
+     **/
+    function onFullPage() {
+        this._trackZoomPan();
+    }
+
+    /*
+     * @private
+     * @method
+     *
+     **/
+    function onFullScreen() {
+        this._trackZoomPan();
+    }
+
+
+}(OpenSeadragon, window.OpenSeadragonImaging = window.OpenSeadragonImaging || {}));
