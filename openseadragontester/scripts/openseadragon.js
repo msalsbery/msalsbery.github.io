@@ -1,6 +1,6 @@
 //! OpenSeadragon 1.0.0
-//! Built on 2014-01-13
-//! Git commit: v1.0.0-33-g7ce552c
+//! Built on 2014-01-18
+//! Git commit: v1.0.0-35-g5c94df3-dirty
 //! http://openseadragon.github.io
 //! License: http://openseadragon.github.io/license/
 
@@ -6624,6 +6624,7 @@ $.Navigator = function( options ){
 
     var viewer      = options.viewer,
         viewerSize,
+        navigatorSize,
         unneededElement;
 
     //We may need to create a new element and id if they did not
@@ -6763,10 +6764,10 @@ $.Navigator = function( options ){
             viewerSize = $.getElementSize( viewer.element );
             this.element.style.height = ( viewerSize.y * options.sizeRatio ) + 'px';
             this.element.style.width  = ( viewerSize.x * options.sizeRatio ) + 'px';
-            if ( options.maintainSizeRatio ) {
-                this.oldViewerSize = viewerSize;
-            }
+            this.oldViewerSize = viewerSize;
         }
+        navigatorSize = $.getElementSize( this.element );
+        this.elementArea = navigatorSize.x * navigatorSize.y;
     }
 
     this.oldContainerSize = new $.Point( 0, 0 );
@@ -6823,18 +6824,26 @@ $.extend( $.Navigator.prototype, $.EventSource.prototype, $.Viewer.prototype, /*
     update: function( viewport ) {
 
         var viewerSize,
+            newWidth,
+            newHeight,
             bounds,
             topleft,
             bottomright;
 
-        if ( this.maintainSizeRatio ) {
-            viewerSize = $.getElementSize( this.viewer.element );
-            if ( !viewerSize.equals( this.oldViewerSize ) ) {
-                this.element.style.height = ( viewerSize.y * this.sizeRatio ) + 'px';
-                this.element.style.width  = ( viewerSize.x * this.sizeRatio ) + 'px';
-                this.oldViewerSize = viewerSize;
-                this.updateSize();
+        viewerSize = $.getElementSize( this.viewer.element );
+        if ( !viewerSize.equals( this.oldViewerSize ) ) {
+            this.oldViewerSize = viewerSize;
+            if ( this.maintainSizeRatio ) {
+                newWidth  = viewerSize.x * this.sizeRatio;
+                newHeight = viewerSize.y * this.sizeRatio;
             }
+            else {
+                newWidth = Math.sqrt(this.elementArea * (viewerSize.x / viewerSize.y));
+                newHeight = this.elementArea / newWidth;
+            }
+            this.element.style.width  = newWidth + 'px';
+            this.element.style.height = newHeight + 'px';
+            this.updateSize();
         }
 
         if( viewport && this.viewport ) {
