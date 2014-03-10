@@ -6,8 +6,8 @@
     $(window).resize(onWindowResize);
     $(window).resize();
 
-    //var tileSourcesPrefix = '../openseadragonimaging/data/',
-    var tileSourcesPrefix = '/media/openseadragonsamples/',
+    var tileSourcesPrefix = '../openseadragonimaging/data/',
+    //var tileSourcesPrefix = '/media/openseadragonsamples/',
         tileSources = [
             tileSourcesPrefix + 'testpattern.dzi',
             tileSourcesPrefix + 'tall.dzi',
