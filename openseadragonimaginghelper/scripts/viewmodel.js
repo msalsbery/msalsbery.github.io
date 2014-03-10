@@ -6,8 +6,8 @@
     $(window).resize(onWindowResize);
     $(window).resize();
 
-    var tileSourcesPrefix = '../openseadragonimaging/data/',
-    //var tileSourcesPrefix = '/media/openseadragonsamples/',
+    //var tileSourcesPrefix = '../openseadragonimaging/data/',
+    var tileSourcesPrefix = '/media/openseadragonsamples/',
         tileSources = [
             tileSourcesPrefix + 'testpattern.dzi',
             tileSourcesPrefix + 'tall.dzi',
@@ -78,6 +78,18 @@
         updateImageVM();
         updateImgViewerViewVM();
         updateImgViewerDataCoordinatesVM();
+
+        //***********************************************************
+        //if (window.PointerEvent) {
+        //    _$osdCanvas[0].addEventListener("pointerdown", foo);
+        //}
+        //else if (window.MSPointerEvent) {
+        //    _$osdCanvas[0].addEventListener("MSPointerDown", foo);
+        //}
+        //else {
+        //    _$osdCanvas[0].addEventListener("mousedown", foo);
+        //}
+        //***********************************************************
 
         _$navExpander.css( 'visibility', 'visible');
         if (_navExpanderIsCollapsed) {
@@ -171,6 +183,10 @@
         imagingHelper.setMinZoom(minZoom);
         imagingHelper.setMaxZoom(maxZoom);
         imagingHelper.setZoomStepPercent(35);
+
+        //viewer.viewport.fitVertically(true);//.ensureVisible(true);
+        //viewer.minZoomLevel = viewer.viewport.getZoom();
+        ////viewer.viewport.applyConstraints();
     }
 
     function onImageViewChanged(event) {
