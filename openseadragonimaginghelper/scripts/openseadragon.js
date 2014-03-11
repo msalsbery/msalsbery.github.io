@@ -1,5 +1,5 @@
 //! OpenSeadragon 1.0.0
-//! Built on 2014-03-10
+//! Built on 2014-03-11
 //! Git commit: v1.0.0-59-gc7ea247-dirty
 //! http://openseadragon.github.io
 //! License: http://openseadragon.github.io/license/
@@ -3752,9 +3752,10 @@ $.EventSource.prototype = /** @lends OpenSeadragon.EventSource.prototype */{
 
         addPointers( tracker, event, [pointer] );
 
-        if ( tracker.pressHandler || tracker.dragHandler || tracker.pinchHandler || tracker.swipeHandler ) {
-            $.cancelEvent( event );
-        }
+        //if ( tracker.pressHandler || tracker.dragHandler || tracker.pinchHandler || tracker.swipeHandler ) {
+        //    $.cancelEvent(event);
+            return false;
+        //}
     }
 
 
@@ -3848,7 +3849,12 @@ $.EventSource.prototype = /** @lends OpenSeadragon.EventSource.prototype */{
             currentTime: time
         };
 
-        removePointers( tracker, event, [pointer] );
+        removePointers(tracker, event, [pointer]);
+
+        //if ( tracker.pressHandler || tracker.dragHandler || tracker.pinchHandler || tracker.swipeHandler ) {
+        //    $.cancelEvent(event);
+        return false;
+        //}
     }
 
 
@@ -3947,7 +3953,12 @@ $.EventSource.prototype = /** @lends OpenSeadragon.EventSource.prototype */{
             currentTime: time
         };
 
-        updatePointers( tracker, event, [pointer] );
+        updatePointers(tracker, event, [pointer]);
+
+        //if ( tracker.pressHandler || tracker.dragHandler || tracker.pinchHandler || tracker.swipeHandler ) {
+        //    $.cancelEvent(event);
+        return false;
+        //}
     }
 
 
@@ -4716,8 +4727,8 @@ $.EventSource.prototype = /** @lends OpenSeadragon.EventSource.prototype */{
                 gesturePoints.push( delegate.touchPoints[ p ] );
             }
             delta = gesturePoints[0].currentPos.distanceTo( gesturePoints[1].currentPos );
-            //if ( delta != delegate.currentPinchDist ) {
-            if (delta != delegate.currentPinchDist && Math.abs(delta - delegate.lastPinchDist) > 75) {
+            if ( delta != delegate.currentPinchDist ) {
+            //if (delta != delegate.currentPinchDist && Math.abs(delta - delegate.lastPinchDist) > 75) {
                 delegate.lastPinchDist = delegate.currentPinchDist;
                 delegate.currentPinchDist = delta;
                 propagate = tracker.pinchHandler(
@@ -7299,7 +7310,7 @@ function onCanvasClick( event ) {
 }
 
 function onCanvasDrag( event ) {
-    if ( !event.preventDefaultAction && this.viewport ) {
+    if (!event.preventDefaultAction && this.viewport) {
         if( !this.panHorizontal ){
             event.delta.x = 0;
         }
@@ -7402,12 +7413,14 @@ function onCanvasScroll( event ) {
 
 function onCanvasPinch(event) {
     if (!event.preventDefaultAction && this.viewport) {
-        //TODO This is temporary for testing. Zoom should track pinch gesture one-to-one, around center point!
-        this.viewport.zoomBy(
-            ( event.delta > 0 ) ? 1.2 : 0.8,
-            this.viewport.pointFromPixel( event.center, true )
-        );
-        this.viewport.applyConstraints();
+        //window.alert(this.viewport.pointFromPixel(event.center, true).x + ' -- ' + this.viewport.pointFromPixel(event.center, true).y);
+        //window.alert(event.center.x + ' -- ' + event.center.y);
+        ////TODO This is temporary for testing. Zoom should track pinch gesture one-to-one, around center point!
+        //this.viewport.zoomBy(
+        //    ( event.delta > 0 ) ? 1.2 : 0.8,
+        //    this.viewport.pointFromPixel( event.center, true )
+        //);
+        //this.viewport.applyConstraints();
     }
     /**
      * Raised when a pinch event occurs on the {@link OpenSeadragon.Viewer#canvas} element.
