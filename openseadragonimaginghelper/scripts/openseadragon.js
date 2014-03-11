@@ -7418,12 +7418,12 @@ function onCanvasPinch(event) {
     if (!event.preventDefaultAction && this.viewport) {
         //window.alert(this.viewport.pointFromPixel(event.center, true).x + ' -- ' + this.viewport.pointFromPixel(event.center, true).y);
         //window.alert(event.center.x + ' -- ' + event.center.y);
-        ////TODO This is temporary for testing. Zoom should track pinch gesture one-to-one, around center point!
-        //this.viewport.zoomBy(
-        //    ( event.delta > 0 ) ? 1.2 : 0.8,
-        //    this.viewport.pointFromPixel( event.center, true )
-        //);
-        //this.viewport.applyConstraints();
+        //TODO This is temporary for testing. Zoom should track pinch gesture one-to-one, around center point!
+        this.viewport.zoomBy(
+            ( event.delta > 0 ) ? 1.2 : 0.8,
+            this.viewport.pointFromPixel( event.center, true )
+        );
+        this.viewport.applyConstraints();
     }
     /**
      * Raised when a pinch event occurs on the {@link OpenSeadragon.Viewer#canvas} element.
