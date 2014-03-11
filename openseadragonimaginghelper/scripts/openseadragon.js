@@ -4082,6 +4082,7 @@ $.EventSource.prototype = /** @lends OpenSeadragon.EventSource.prototype */{
         addPointers( tracker, event, pointers );
 
         event.preventDefault();
+        return false;
 ////****************************************************************
 //        var touchA,
 //            touchB;
@@ -4168,6 +4169,7 @@ $.EventSource.prototype = /** @lends OpenSeadragon.EventSource.prototype */{
         }
 
         event.preventDefault();
+        return false;
 //****************************************************************************************
 //        if ( event.touches.length === 0 &&
 //            event.targetTouches.length === 0 &&
@@ -4223,6 +4225,7 @@ $.EventSource.prototype = /** @lends OpenSeadragon.EventSource.prototype */{
         updatePointers( tracker, event, pointers );
 
         event.preventDefault();
+        return false;
 //*******************************************************************************
 //        var touchA,
 //            touchB,
