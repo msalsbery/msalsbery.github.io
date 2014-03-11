@@ -1,6 +1,6 @@
 //! OpenSeadragon 1.0.0
 //! Built on 2014-03-10
-//! Git commit: v1.0.0-58-g13fa798-dirty
+//! Git commit: v1.0.0-59-gc7ea247-dirty
 //! http://openseadragon.github.io
 //! License: http://openseadragon.github.io/license/
 
@@ -4720,11 +4720,11 @@ $.EventSource.prototype = /** @lends OpenSeadragon.EventSource.prototype */{
             if (delta != delegate.currentPinchDist && Math.abs(delta - delegate.lastPinchDist) > 75) {
                 delegate.lastPinchDist = delegate.currentPinchDist;
                 delegate.currentPinchDist = delta;
-
                 propagate = tracker.pinchHandler(
                     {
                         eventSource:          tracker,
-                        position:             getPointRelative( updatePointer.currentPos, tracker.element ),
+                        center:               getPointRelative( new $.Point( ( gesturePoints[0].currentPos.x + gesturePoints[1].currentPos.x ) / 2,
+                                                                             ( gesturePoints[0].currentPos.y + gesturePoints[1].currentPos.y ) / 2 ) ),
                         delta:                delegate.currentPinchDist - delegate.lastPinchDist,
                         shift:                event.shiftKey,
                         isTouchEvent:         curPointer.type === 'touch',
@@ -7405,7 +7405,7 @@ function onCanvasPinch(event) {
         //TODO This is temporary for testing. Zoom should track pinch gesture one-to-one, around center point!
         this.viewport.zoomBy(
             ( event.delta > 0 ) ? 1.2 : 0.8,
-            this.viewport.pointFromPixel(event.position, true)
+            this.viewport.pointFromPixel( event.center, true )
         );
         this.viewport.applyConstraints();
     }
