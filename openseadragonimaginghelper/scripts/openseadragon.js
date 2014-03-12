@@ -1,5 +1,5 @@
 //! OpenSeadragon 1.0.0
-//! Built on 2014-03-11
+//! Built on 2014-03-12
 //! Git commit: v1.0.0-59-gc7ea247-dirty
 //! http://openseadragon.github.io
 //! License: http://openseadragon.github.io/license/
@@ -3754,6 +3754,8 @@ $.EventSource.prototype = /** @lends OpenSeadragon.EventSource.prototype */{
 
         //if ( tracker.pressHandler || tracker.dragHandler || tracker.pinchHandler || tracker.swipeHandler ) {
         //    $.cancelEvent(event);
+        event.stopImmediatePropagation = true;
+        event.preventDefault();
             return false;
         //}
     }
@@ -3853,6 +3855,8 @@ $.EventSource.prototype = /** @lends OpenSeadragon.EventSource.prototype */{
 
         //if ( tracker.pressHandler || tracker.dragHandler || tracker.pinchHandler || tracker.swipeHandler ) {
         //    $.cancelEvent(event);
+        event.stopImmediatePropagation = true;
+        event.preventDefault();
         return false;
         //}
     }
@@ -3957,6 +3961,8 @@ $.EventSource.prototype = /** @lends OpenSeadragon.EventSource.prototype */{
 
         //if ( tracker.pressHandler || tracker.dragHandler || tracker.pinchHandler || tracker.swipeHandler ) {
         //    $.cancelEvent(event);
+        event.stopImmediatePropagation = true;
+        event.preventDefault();
         return false;
         //}
     }
