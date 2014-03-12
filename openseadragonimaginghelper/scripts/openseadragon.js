@@ -3754,7 +3754,8 @@ $.EventSource.prototype = /** @lends OpenSeadragon.EventSource.prototype */{
 
         //if ( tracker.pressHandler || tracker.dragHandler || tracker.pinchHandler || tracker.swipeHandler ) {
         //    $.cancelEvent(event);
-        event.stopImmediatePropagation = true;
+        event.stopPropagation();
+        event.stopImmediatePropagation();
         event.preventDefault();
             return false;
         //}
@@ -3855,7 +3856,8 @@ $.EventSource.prototype = /** @lends OpenSeadragon.EventSource.prototype */{
 
         //if ( tracker.pressHandler || tracker.dragHandler || tracker.pinchHandler || tracker.swipeHandler ) {
         //    $.cancelEvent(event);
-        event.stopImmediatePropagation = true;
+        event.stopPropagation();
+        event.stopImmediatePropagation();
         event.preventDefault();
         return false;
         //}
@@ -3961,7 +3963,8 @@ $.EventSource.prototype = /** @lends OpenSeadragon.EventSource.prototype */{
 
         //if ( tracker.pressHandler || tracker.dragHandler || tracker.pinchHandler || tracker.swipeHandler ) {
         //    $.cancelEvent(event);
-        event.stopImmediatePropagation = true;
+        event.stopPropagation();
+        event.stopImmediatePropagation();
         event.preventDefault();
         return false;
         //}
@@ -4087,6 +4090,7 @@ $.EventSource.prototype = /** @lends OpenSeadragon.EventSource.prototype */{
 
         addPointers( tracker, event, pointers );
 
+        event.stopPropagation();
         event.preventDefault();
         return false;
 ////****************************************************************
@@ -4174,6 +4178,7 @@ $.EventSource.prototype = /** @lends OpenSeadragon.EventSource.prototype */{
             updatePointersOut( tracker, event, [pointer] );
         }
 
+        event.stopPropagation();
         event.preventDefault();
         return false;
 //****************************************************************************************
@@ -4230,6 +4235,7 @@ $.EventSource.prototype = /** @lends OpenSeadragon.EventSource.prototype */{
 
         updatePointers( tracker, event, pointers );
 
+        event.stopPropagation();
         event.preventDefault();
         return false;
 //*******************************************************************************
