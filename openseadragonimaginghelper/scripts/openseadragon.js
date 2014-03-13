@@ -1,5 +1,5 @@
 //! OpenSeadragon 1.0.0
-//! Built on 2014-03-12
+//! Built on 2014-03-13
 //! Git commit: v1.0.0-59-gc7ea247-dirty
 //! http://openseadragon.github.io
 //! License: http://openseadragon.github.io/license/
@@ -2760,7 +2760,9 @@ $.EventSource.prototype = /** @lends OpenSeadragon.EventSource.prototype */{
             touchstart:            function ( event ) { onTouchStart( _this, event ); },
             touchmove:             function ( event ) { onTouchMove( _this, event ); },
             touchend:              function ( event ) { onTouchEnd( _this, event ); },
-            tracking:              false,
+            gesturestart:          function ( event ) { onGestureStart( _this, event ); },
+            gesturechange:         function ( event ) { onGestureChange( _this, event ); },
+            tracking: false,
             capturing:             false,
             // Contact Points
             mousePoints:           {},
@@ -3173,7 +3175,7 @@ $.EventSource.prototype = /** @lends OpenSeadragon.EventSource.prototype */{
         $.MouseTracker.subscribeEvents.push( "mouseover", "mouseout", "mousedown", "mouseup", "mousemove" );
         if ( 'ontouchstart' in window ) {
             // iOS, Android, and other W3c Touch Event implementations (see http://www.w3.org/TR/2011/WD-touch-events-20110505)
-            $.MouseTracker.subscribeEvents.push( "touchstart", "touchmove", "touchend" );
+            $.MouseTracker.subscribeEvents.push( "touchstart", "touchmove", "touchend", "gesturestart", "gesturechange" );
         }
         $.MouseTracker.mousePointerId = "legacy-mouse";
         $.MouseTracker.maxTouchPoints = 10;
@@ -4287,6 +4289,28 @@ $.EventSource.prototype = /** @lends OpenSeadragon.EventSource.prototype */{
 //                //}
 //        }
 //        event.preventDefault();
+    }
+
+
+    /**
+     * @private
+     * @inner
+     */
+    function onGestureStart( tracker, event ) {
+        event.stopPropagation();
+        event.preventDefault();
+        return false;
+    }
+
+
+    /**
+     * @private
+     * @inner
+     */
+    function onGestureChange( tracker, event ) {
+        event.stopPropagation();
+        event.preventDefault();
+        return false;
     }
 
 
