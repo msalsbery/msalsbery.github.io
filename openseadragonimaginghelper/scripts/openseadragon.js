@@ -3757,7 +3757,6 @@ $.EventSource.prototype = /** @lends OpenSeadragon.EventSource.prototype */{
         //if ( tracker.pressHandler || tracker.dragHandler || tracker.pinchHandler || tracker.swipeHandler ) {
         //    $.cancelEvent(event);
         event.stopPropagation();
-        event.stopImmediatePropagation();
         event.preventDefault();
             return false;
         //}
@@ -3859,7 +3858,6 @@ $.EventSource.prototype = /** @lends OpenSeadragon.EventSource.prototype */{
         //if ( tracker.pressHandler || tracker.dragHandler || tracker.pinchHandler || tracker.swipeHandler ) {
         //    $.cancelEvent(event);
         event.stopPropagation();
-        event.stopImmediatePropagation();
         event.preventDefault();
         return false;
         //}
@@ -3966,7 +3964,6 @@ $.EventSource.prototype = /** @lends OpenSeadragon.EventSource.prototype */{
         //if ( tracker.pressHandler || tracker.dragHandler || tracker.pinchHandler || tracker.swipeHandler ) {
         //    $.cancelEvent(event);
         event.stopPropagation();
-        event.stopImmediatePropagation();
         event.preventDefault();
         return false;
         //}
@@ -4296,7 +4293,7 @@ $.EventSource.prototype = /** @lends OpenSeadragon.EventSource.prototype */{
      * @private
      * @inner
      */
-    function onGestureStart( tracker, event ) {
+    function onGestureStart(tracker, event) {
         event.stopPropagation();
         event.preventDefault();
         return false;
