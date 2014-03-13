@@ -12,205 +12,42 @@
 <body>
 
     <div class="viewer-box">
-        <p class="viewer-description">Default Navigator (navigatorMaintainSizeRatio: false)</p>
-        <pre><code>
-            OpenSeadragon({
-                        id: 'osd1',
-                        prefixUrl: 'content/images/openseadragon/',
-                        useCanvas: true,
-                        showNavigationControl: true,
-                        navigationControlAnchor: OpenSeadragon.ControlAnchor.TOP_LEFT,
-                        showSequenceControl: true,
-                        sequenceControlAnchor: OpenSeadragon.ControlAnchor.TOP_LEFT,
-                        showNavigator: true,
-                        tileSources: tileSources
-            });
-        </code></pre>
         <div class="viewer-container">
             <div id="osd1" class="openseadragon1"></div>
         </div>
     </div>
 
 
-    <div class="viewer-box">
-        <p class="viewer-description">navigatorMaintainSizeRatio: true</p>
-        <pre><code>
-            OpenSeadragon({
-                        id: 'osd2',
-                        prefixUrl: 'content/images/openseadragon/',
-                        useCanvas: true,
-                        showNavigationControl: true,
-                        navigationControlAnchor: OpenSeadragon.ControlAnchor.TOP_LEFT,
-                        showSequenceControl: true,
-                        sequenceControlAnchor: OpenSeadragon.ControlAnchor.TOP_LEFT,
-                        showNavigator: true,
-                        navigatorMaintainSizeRatio: true,
-                        tileSources: tileSources
-            });
-        </code></pre>
-        <div class="viewer-container">
-            <div id="osd2" class="openseadragon1"></div>
-        </div>
-    </div>
-
-
-    <div class="viewer-box">
-        <p class="viewer-description">navigatorMaintainSizeRatio: true<br />navigatorPosition: 'BOTTOM_RIGHT'</p>
-        <pre><code>
-            OpenSeadragon({
-                        id: 'osd3',
-                        prefixUrl: 'content/images/openseadragon/',
-                        useCanvas: true,
-                        showNavigationControl: true,
-                        navigationControlAnchor: OpenSeadragon.ControlAnchor.BOTTOM_LEFT,
-                        showSequenceControl: true,
-                        sequenceControlAnchor: OpenSeadragon.ControlAnchor.BOTTOM_LEFT,
-                        showNavigator: true,
-                        navigatorPosition: 'BOTTOM_RIGHT',
-                        navigatorMaintainSizeRatio: true,
-                        tileSources: tileSources
-            });
-        </code></pre>
-        <div class="viewer-container">
-            <div id="osd3" class="openseadragon1"></div>
-        </div>
-    </div>
-
-
-    <div class="viewer-box">
-        <p class="viewer-description">navigatorPosition: 'ABSOLUTE'</p>
-        <pre><code>
-            OpenSeadragon({
-                        id: 'osd4',
-                        prefixUrl: 'content/images/openseadragon/',
-                        useCanvas: true,
-                        showNavigationControl: true,
-                        navigationControlAnchor: OpenSeadragon.ControlAnchor.TOP_RIGHT,
-                        showSequenceControl: true,
-                        sequenceControlAnchor: OpenSeadragon.ControlAnchor.TOP_RIGHT,
-                        showNavigator: true,
-                        navigatorPosition: 'ABSOLUTE',
-                        navigatorTop: 10,
-                        navigatorLeft: 10,
-                        navigatorHeight: 150,
-                        navigatorWidth: 175,
-                        tileSources: tileSources
-            });
-        </code></pre>
-        <div class="viewer-container">
-            <div id="osd4" class="openseadragon1"></div>
-        </div>
-    </div>
-
-
-    <div class="viewer-box">
-        <p class="viewer-description">Hosted in External Element</p>
-        <pre><code>
-            OpenSeadragon({
-                        id: 'osd5',
-                        prefixUrl: 'content/images/openseadragon/',
-                        useCanvas: true,
-                        showNavigationControl: true,
-                        navigationControlAnchor: OpenSeadragon.ControlAnchor.TOP_LEFT,
-                        showSequenceControl: true,
-                        sequenceControlAnchor: OpenSeadragon.ControlAnchor.TOP_LEFT,
-                        showNavigator: true,
-                        navigatorId: 'osdnavigator5',
-                        tileSources: tileSources
-            });
-        </code></pre>
-        <div class="navigator-box">
-            <div class="navigator-div" id="osdnavigator5"></div>
-        </div>
-        <div class="viewer-container">
-            <div id="osd5" class="openseadragon1"></div>
-        </div>
-    </div>
-
-
     <script type="text/javascript">
-        var tileSourcesPrefix = '../openseadragonimaging/data/',
-        //var tileSourcesPrefix = '/media/openseadragonsamples/',
+        //var tileSourcesPrefix = '../openseadragonimaging/data/',
+        var tileSourcesPrefix = '/media/openseadragonsamples/',
             tileSources = [
                 tileSourcesPrefix + 'testpattern.dzi',
                 tileSourcesPrefix + 'tall.dzi',
                 tileSourcesPrefix + 'wide.dzi',
-                new OpenSeadragon.LegacyTileSource( [{
+                new OpenSeadragon.LegacyTileSource([{
                     url: tileSourcesPrefix + 'dog_radiograph_2.jpg',
                     width: 1909,
                     height: 1331
-                }] )
+                }])
             ];
 
         hljs.initHighlightingOnLoad();
 
         OpenSeadragon({
-                    id: 'osd1',
-                    prefixUrl: 'content/images/openseadragon/',
-                    useCanvas: true,
-                    showNavigationControl: true,
-                    navigationControlAnchor: OpenSeadragon.ControlAnchor.TOP_LEFT,
-                    showSequenceControl: true,
-                    sequenceControlAnchor: OpenSeadragon.ControlAnchor.TOP_LEFT,
-                    showNavigator: true,
-                    tileSources: tileSources
-        });
-
-        OpenSeadragon({
-                    id: 'osd2',
-                    prefixUrl: 'content/images/openseadragon/',
-                    useCanvas: true,
-                    showNavigationControl: true,
-                    navigationControlAnchor: OpenSeadragon.ControlAnchor.TOP_LEFT,
-                    showSequenceControl: true,
-                    sequenceControlAnchor: OpenSeadragon.ControlAnchor.TOP_LEFT,
-                    showNavigator: true,
-                    navigatorMaintainSizeRatio: true,
-                    tileSources: tileSources
-        });
-
-        OpenSeadragon({
-                    id: 'osd3',
-                    prefixUrl: 'content/images/openseadragon/',
-                    useCanvas: true,
-                    showNavigationControl: true,
-                    navigationControlAnchor: OpenSeadragon.ControlAnchor.BOTTOM_LEFT,
-                    showSequenceControl: true,
-                    sequenceControlAnchor: OpenSeadragon.ControlAnchor.BOTTOM_LEFT,
-                    showNavigator: true,
-                    navigatorPosition: 'BOTTOM_RIGHT',
-                    navigatorMaintainSizeRatio: true,
-                    tileSources: tileSources
-        });
-
-        OpenSeadragon({
-                    id: 'osd4',
-                    prefixUrl: 'content/images/openseadragon/',
-                    useCanvas: true,
-                    showNavigationControl: true,
-                    navigationControlAnchor: OpenSeadragon.ControlAnchor.TOP_RIGHT,
-                    showSequenceControl: true,
-                    sequenceControlAnchor: OpenSeadragon.ControlAnchor.TOP_RIGHT,
-                    showNavigator: true,
-                    navigatorPosition: 'ABSOLUTE',
-                    navigatorTop: 10,
-                    navigatorLeft: 10,
-                    navigatorHeight: 150,
-                    navigatorWidth: 175,
-                    tileSources: tileSources
-        });
-
-        OpenSeadragon({
-                    id: 'osd5',
-                    prefixUrl: 'content/images/openseadragon/',
-                    useCanvas: true,
-                    showNavigationControl: true,
-                    navigationControlAnchor: OpenSeadragon.ControlAnchor.TOP_LEFT,
-                    showSequenceControl: true,
-                    sequenceControlAnchor: OpenSeadragon.ControlAnchor.TOP_LEFT,
-                    showNavigator: true,
-                    navigatorId: 'osdnavigator5',
-                    tileSources: tileSources
+            id: 'osd1',
+            prefixUrl: 'content/images/openseadragon/',
+            useCanvas: true,
+            showNavigationControl: true,
+            navigationControlAnchor: OpenSeadragon.ControlAnchor.TOP_LEFT,
+            showSequenceControl: true,
+            sequenceControlAnchor: OpenSeadragon.ControlAnchor.TOP_LEFT,
+            showNavigator: false,
+            visibilityRatio: 0.1,
+            minZoomLevel: 0.05,
+            maxZoomLevel: 10,
+            zoomPerClick: 1.4,
+            tileSources: tileSources
         });
     </script>
 
