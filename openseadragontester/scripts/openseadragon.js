@@ -3729,10 +3729,10 @@ $.EventSource.prototype = /** @lends OpenSeadragon.EventSource.prototype */{
         }
 
         if ( $.MouseTracker.unprefixedPointerEvents ) {
-            event.target.setPointerCapture(event.pointerId);
+            event.currentTarget.setPointerCapture(event.pointerId);
         }
         else {
-            event.target.msSetPointerCapture(event.pointerId);
+            event.currentTarget.msSetPointerCapture(event.pointerId);
         }
 
         time = $.now();
@@ -3830,10 +3830,10 @@ $.EventSource.prototype = /** @lends OpenSeadragon.EventSource.prototype */{
         }
 
         if ( $.MouseTracker.unprefixedPointerEvents ) {
-            event.target.releasePointerCapture(event.pointerId);
+            event.currentTarget.releasePointerCapture(event.pointerId);
         }
         else {
-            event.target.msReleasePointerCapture(event.pointerId);
+            event.currentTarget.msReleasePointerCapture(event.pointerId);
         }
 
         time = $.now();
