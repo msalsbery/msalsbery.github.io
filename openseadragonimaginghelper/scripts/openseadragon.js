@@ -1,6 +1,6 @@
 //! OpenSeadragon 1.0.0
-//! Built on 2014-03-13
-//! Git commit: v1.0.0-59-gc7ea247-dirty
+//! Built on 2014-03-15
+//! Git commit: v1.0.0-61-g7aa0df1-dirty
 //! http://openseadragon.github.io
 //! License: http://openseadragon.github.io/license/
 
@@ -2772,8 +2772,11 @@ $.EventSource.prototype = /** @lends OpenSeadragon.EventSource.prototype */{
             penPoints:             {},
             penPointCount:         0,
             // Tracking for pinch gesture
+            pinchGesturePoints:    [],
             lastPinchDist:         0,
             currentPinchDist:      0,
+            lastPinchCenter:       null,
+            currentPinchCenter:    null,
 
             //insideElementPressed:  false,
             //insideElement:         false,
@@ -3393,6 +3396,7 @@ $.EventSource.prototype = /** @lends OpenSeadragon.EventSource.prototype */{
      */
     function getMouseAbsolute( event ) {
         return $.getMousePosition( event );
+        //return new $.Point( event.pageX, event.pageY );
     }
 
     /**
@@ -3410,6 +3414,14 @@ $.EventSource.prototype = /** @lends OpenSeadragon.EventSource.prototype */{
     function getPointRelative( point, element ) {
         var offset = $.getElementOffset( element );
         return point.minus( offset );
+    }
+
+    /**
+     * @private
+     * @inner
+     */
+    function getCenterPoint( point1, point2 ) {
+        return new $.Point( ( point1.x + point2.x ) / 2, ( point1.y + point2.y ) / 2 );
     }
 
 
@@ -3729,10 +3741,10 @@ $.EventSource.prototype = /** @lends OpenSeadragon.EventSource.prototype */{
         }
 
         if ( $.MouseTracker.unprefixedPointerEvents ) {
-            event.target.setPointerCapture(event.pointerId);
+            event.currentTarget.setPointerCapture(event.pointerId);
         }
         else {
-            event.target.msSetPointerCapture(event.pointerId);
+            event.currentTarget.msSetPointerCapture(event.pointerId);
         }
 
         time = $.now();
@@ -3830,10 +3842,10 @@ $.EventSource.prototype = /** @lends OpenSeadragon.EventSource.prototype */{
         }
 
         if ( $.MouseTracker.unprefixedPointerEvents ) {
-            event.target.releasePointerCapture(event.pointerId);
+            event.currentTarget.releasePointerCapture(event.pointerId);
         }
         else {
-            event.target.msReleasePointerCapture(event.pointerId);
+            event.currentTarget.msReleasePointerCapture(event.pointerId);
         }
 
         time = $.now();
@@ -4293,7 +4305,7 @@ $.EventSource.prototype = /** @lends OpenSeadragon.EventSource.prototype */{
      * @private
      * @inner
      */
-    function onGestureStart(tracker, event) {
+    function onGestureStart( tracker, event ) {
         event.stopPropagation();
         event.preventDefault();
         return false;
@@ -4490,8 +4502,7 @@ $.EventSource.prototype = /** @lends OpenSeadragon.EventSource.prototype */{
             dispatchPress = false,
             i,
             pointerCount = pointers.length,
-            curPointer,
-            gesturePoints;
+            curPointer;
 
         for ( i = 0; i < pointerCount; i++ ) {
             curPointer = pointers[ i ];
@@ -4511,11 +4522,12 @@ $.EventSource.prototype = /** @lends OpenSeadragon.EventSource.prototype */{
                     delegate.touchPointCount++;
                     if ( delegate.touchPointCount == 2 && tracker.pinchHandler ) {
                         // Initialize for pinch gesture tracking
-                        gesturePoints = [];
+                        delegate.pinchGesturePoints = [];
                         for ( var p in delegate.touchPoints ) {
-                            gesturePoints.push( delegate.touchPoints[ p ] );
+                            delegate.pinchGesturePoints.push( delegate.touchPoints[ p ] );
                         }
-                        delegate.lastPinchDist = delegate.currentPinchDist = gesturePoints[0].currentPos.distanceTo(gesturePoints[1].currentPos);
+                        delegate.lastPinchDist = delegate.currentPinchDist = delegate.pinchGesturePoints[0].currentPos.distanceTo( delegate.pinchGesturePoints[1].currentPos );
+                        delegate.lastPinchCenter = delegate.currentPinchCenter = getCenterPoint( delegate.pinchGesturePoints[0].currentPos, delegate.pinchGesturePoints[1].currentPos );
                     }
                 }
             }
@@ -4683,8 +4695,7 @@ $.EventSource.prototype = /** @lends OpenSeadragon.EventSource.prototype */{
             points,
             pointCount,
             delta,
-            propagate,
-            gesturePoints;
+            propagate;
 
         if ( pointers[ 0 ].type === 'mouse' ) {
             points = delegate.mousePoints;
@@ -4758,23 +4769,30 @@ $.EventSource.prototype = /** @lends OpenSeadragon.EventSource.prototype */{
 
         // Pinch Gesture
         if ( pointers[ 0 ].type === 'touch' && delegate.touchPointCount == 2 && tracker.pinchHandler ) {
-            gesturePoints = [];
-            for ( var p in delegate.touchPoints ) {
-                gesturePoints.push( delegate.touchPoints[ p ] );
-            }
-            delta = gesturePoints[0].currentPos.distanceTo( gesturePoints[1].currentPos );
+            //gesturePoints = [];
+            //for ( var p in delegate.touchPoints ) {
+            //    gesturePoints.push( delegate.touchPoints[ p ] );
+            //}
+            delta = delegate.pinchGesturePoints[0].currentPos.distanceTo( delegate.pinchGesturePoints[1].currentPos );
             if ( delta != delegate.currentPinchDist ) {
-            //if (delta != delegate.currentPinchDist && Math.abs(delta - delegate.lastPinchDist) > 75) {
+//window.alert(delegate.pinchGesturePoints[0].currentPos.x + ',' + delegate.pinchGesturePoints[0].currentPos.y + '\n' + delegate.pinchGesturePoints[1].currentPos.x + ',' + delegate.pinchGesturePoints[1].currentPos.y);
+//var offset = $.getElementOffset( tracker.element );
+//window.alert(event.changedTouches[ i ].screenX + ',' + event.changedTouches[ i ].screenY + '\n' +
+//                event.changedTouches[ i ].clientX + ',' + event.changedTouches[ i ].clientY + '\n' +
+//                event.changedTouches[ i ].pageX + ',' + event.changedTouches[ i ].pageY + '\n\n' +
+//                offset.x + ',' + offset.y);
                 delegate.lastPinchDist = delegate.currentPinchDist;
                 delegate.currentPinchDist = delta;
+                delegate.lastPinchCenter = delegate.currentPinchCenter;
+                delegate.currentPinchCenter = getCenterPoint( delegate.pinchGesturePoints[0].currentPos, delegate.pinchGesturePoints[1].currentPos );
                 propagate = tracker.pinchHandler(
                     {
                         eventSource:          tracker,
-                        center:               getPointRelative( new $.Point( ( gesturePoints[0].currentPos.x + gesturePoints[1].currentPos.x ) / 2,
-                                                                             ( gesturePoints[0].currentPos.y + gesturePoints[1].currentPos.y ) / 2 ) ),
-                        delta:                delegate.currentPinchDist - delegate.lastPinchDist,
-                        shift:                event.shiftKey,
-                        isTouchEvent:         curPointer.type === 'touch',
+                        gesturePoints:        delegate.pinchGesturePoints,
+                        lastCenter:           getPointRelative( delegate.lastPinchCenter, tracker.element ),
+                        center:               getPointRelative( delegate.currentPinchCenter, tracker.element ),
+                        lastDistance:         delegate.lastPinchDist,
+                        currentDistance:      delegate.currentPinchDist,
                         originalEvent:        event,
                         preventDefaultAction: false,
                         userData:             tracker.userData
@@ -7346,7 +7364,7 @@ function onCanvasClick( event ) {
 }
 
 function onCanvasDrag( event ) {
-    if (!event.preventDefaultAction && this.viewport) {
+    if ( !event.preventDefaultAction && this.viewport ) {
         if( !this.panHorizontal ){
             event.delta.x = 0;
         }
@@ -7448,14 +7466,26 @@ function onCanvasScroll( event ) {
 }
 
 function onCanvasPinch(event) {
+//{
+//    eventSource:
+//    gesturePoints:
+//    lastCenter:
+//    center:
+//    lastDistance:
+//    currentDistance:
+//    originalEvent:
+//    preventDefaultAction:
+//    userData:
+//}
     if (!event.preventDefaultAction && this.viewport) {
-        //window.alert(this.viewport.pointFromPixel(event.center, true).x + ' -- ' + this.viewport.pointFromPixel(event.center, true).y);
-        //window.alert(event.center.x + ' -- ' + event.center.y);
-        //TODO This is temporary for testing. Zoom should track pinch gesture one-to-one, around center point!
-        this.viewport.zoomBy(
-            ( event.delta > 0 ) ? 1.2 : 0.8,
-            this.viewport.pointFromPixel( event.center, true )
-        );
+        //window.alert(event.lastCenter.x + ',' + event.lastCenter.y + '\n' + event.center.x + ',' + event.center.y);
+        //var p = this.viewport.pointFromPixel( event.center, true );
+        //window.alert(event.center.x + ',' + event.center.y + '\n' + p.x + ',' + p.y);
+        //TODO This is temporary for testing. Zoom should track pinch gesture one-to-one!
+        var centerPt = this.viewport.pointFromPixel( event.center, true ),
+            lastCenterPt = this.viewport.pointFromPixel( event.lastCenter, true );
+        this.viewport.zoomBy( event.currentDistance / event.lastDistance, centerPt, true );
+        this.viewport.panBy( lastCenterPt.minus( centerPt ), false );
         this.viewport.applyConstraints();
     }
     /**
@@ -7483,7 +7513,7 @@ function onCanvasPinch(event) {
     return false;
 }
 
-function onContainerExit(event) {
+function onContainerExit( event ) {
     if ( !event.insideElementPressed ) {
         THIS[ this.hash ].mouseInside = false;
         if ( !THIS[ this.hash ].animating ) {
