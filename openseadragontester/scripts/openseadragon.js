@@ -1,6 +1,6 @@
 //! OpenSeadragon 1.0.0
-//! Built on 2014-03-15
-//! Git commit: v1.0.0-61-g7aa0df1-dirty
+//! Built on 2014-03-17
+//! Git commit: v1.0.0-62-gd52df4a-dirty
 //! http://openseadragon.github.io
 //! License: http://openseadragon.github.io/license/
 
@@ -3396,7 +3396,6 @@ $.EventSource.prototype = /** @lends OpenSeadragon.EventSource.prototype */{
      */
     function getMouseAbsolute( event ) {
         return $.getMousePosition( event );
-        //return new $.Point( event.pageX, event.pageY );
     }
 
     /**
@@ -4775,12 +4774,6 @@ $.EventSource.prototype = /** @lends OpenSeadragon.EventSource.prototype */{
             //}
             delta = delegate.pinchGesturePoints[0].currentPos.distanceTo( delegate.pinchGesturePoints[1].currentPos );
             if ( delta != delegate.currentPinchDist ) {
-//window.alert(delegate.pinchGesturePoints[0].currentPos.x + ',' + delegate.pinchGesturePoints[0].currentPos.y + '\n' + delegate.pinchGesturePoints[1].currentPos.x + ',' + delegate.pinchGesturePoints[1].currentPos.y);
-//var offset = $.getElementOffset( tracker.element );
-//window.alert(event.changedTouches[ i ].screenX + ',' + event.changedTouches[ i ].screenY + '\n' +
-//                event.changedTouches[ i ].clientX + ',' + event.changedTouches[ i ].clientY + '\n' +
-//                event.changedTouches[ i ].pageX + ',' + event.changedTouches[ i ].pageY + '\n\n' +
-//                offset.x + ',' + offset.y);
                 delegate.lastPinchDist = delegate.currentPinchDist;
                 delegate.currentPinchDist = delta;
                 delegate.lastPinchCenter = delegate.currentPinchCenter;
@@ -7371,11 +7364,7 @@ function onCanvasDrag( event ) {
         if( !this.panVertical ){
             event.delta.y = 0;
         }
-        this.viewport.panBy(
-            this.viewport.deltaPointsFromPixels(
-                event.delta.negate()
-            )
-        );
+        this.viewport.panBy( this.viewport.deltaPointsFromPixels( event.delta.negate() ), true );
         if( this.constrainDuringPan ){
             this.viewport.applyConstraints();
         }
@@ -7478,14 +7467,10 @@ function onCanvasPinch(event) {
 //    userData:
 //}
     if (!event.preventDefaultAction && this.viewport) {
-        //window.alert(event.lastCenter.x + ',' + event.lastCenter.y + '\n' + event.center.x + ',' + event.center.y);
-        //var p = this.viewport.pointFromPixel( event.center, true );
-        //window.alert(event.center.x + ',' + event.center.y + '\n' + p.x + ',' + p.y);
-        //TODO This is temporary for testing. Zoom should track pinch gesture one-to-one!
         var centerPt = this.viewport.pointFromPixel( event.center, true ),
             lastCenterPt = this.viewport.pointFromPixel( event.lastCenter, true );
         this.viewport.zoomBy( event.currentDistance / event.lastDistance, centerPt, true );
-        this.viewport.panBy( lastCenterPt.minus( centerPt ), false );
+        this.viewport.panBy( lastCenterPt.minus( centerPt ), true );
         this.viewport.applyConstraints();
     }
     /**
