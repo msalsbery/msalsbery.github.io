@@ -10,7 +10,7 @@ code
 
 .viewer-box
 {
-    margin: 5px;
+    margin: 10px;
     padding: 0px;
 }
 
@@ -21,6 +21,7 @@ code
 
 .viewer-container
 {
+    margin: 0;
     padding: 0;
 }
 
