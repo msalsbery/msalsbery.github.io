@@ -3,9 +3,9 @@
 
 <head>
     <title>OpenSeadragon Tester</title>
-    <script type="text/javascript" src="scripts/highlight.pack.js"></script>
-    <script type="text/javascript" src='scripts/openseadragon.min.js'></script>
-    <link rel="stylesheet" type="text/css" href="content/css/highlight.js/default.css" />
+    <!--<script type="text/javascript" src="scripts/highlight.pack.js"></script>-->
+    <script type="text/javascript" src='scripts/openseadragon.js'></script>
+    <!--<link rel="stylesheet" type="text/css" href="content/css/highlight.js/default.css" />-->
     <link rel="stylesheet" type="text/css" href="content/css/style.css" />
 </head>
 
@@ -19,8 +19,8 @@
 
 
     <script type="text/javascript">
-        var tileSourcesPrefix = '../openseadragonimaging/data/',
-        //var tileSourcesPrefix = '/media/openseadragonsamples/',
+        //var tileSourcesPrefix = '../openseadragonimaging/data/',
+        var tileSourcesPrefix = '/media/openseadragonsamples/',
             tileSources = [
                 tileSourcesPrefix + 'testpattern.dzi',
                 tileSourcesPrefix + 'tall.dzi',
@@ -32,7 +32,7 @@
                 }])
             ];
 
-        hljs.initHighlightingOnLoad();
+        //hljs.initHighlightingOnLoad();
 
         OpenSeadragon({
             id: 'osd1',
