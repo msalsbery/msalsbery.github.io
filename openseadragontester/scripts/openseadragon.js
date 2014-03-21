@@ -1,6 +1,6 @@
 //! OpenSeadragon 1.0.0
-//! Built on 2014-03-17
-//! Git commit: v1.0.0-62-gd52df4a-dirty
+//! Built on 2014-03-21
+//! Git commit: v1.0.0-101-g3c0ca21
 //! http://openseadragon.github.io
 //! License: http://openseadragon.github.io/license/
 
@@ -142,6 +142,28 @@
   *     is an Array of objects, it is used to create a
   *     {@link OpenSeadragon.LegacyTileSource}.
   *
+  * @property {Array} overlays Array of objects defining permanent overlays of
+  *     the viewer. The overlays added via this option and later removed with
+  *     {@link OpenSeadragon.Viewer#removeOverlay} will be added back when a new
+  *     image is opened.
+  *     To add overlays which can be definitively removed, one must use
+  *     {@link OpenSeadragon.Viewer#addOverlay}
+  *     If displaying a sequence of images, the overlays can be associated
+  *     with a specific page by passing the overlays array to the page's
+  *     tile source configuration.
+  *     Expected properties:
+  *     * x, y, (or px, py for pixel coordinates) to define the location.
+  *     * width, height in point if using x,y or in pixels if using px,py. If width
+  *       and height are specified, the overlay size is adjusted when zooming,
+  *       otherwise the size stays the size of the content (or the size defined by CSS).
+  *     * className to associate a class to the overlay
+  *     * id to set the overlay element. If an element with this id already exists,
+  *       it is reused, otherwise it is created. If not specified, a new element is
+  *       created.
+  *     * placement a string to define the relative position to the viewport.
+  *       Only used if no width and height are specified. Default: 'TOP_LEFT'.
+  *       See {@link OpenSeadragon.OverlayPlacement} for possible values.
+  *
   * @property {String} [xmlPath=null]
   *     <strong>DEPRECATED</strong>. A relative path to load a DZI file from the server.
   *     Prefer the newer Options.tileSources.
@@ -195,6 +217,12 @@
   * @property {Number} [defaultZoomLevel=0]
   *     Zoom level to use when image is first opened or the home button is clicked.
   *     If 0, adjusts to fit viewer.
+  *
+  * @property {Number} [opacity=1]
+  *     Opacity of the drawer (1=opaque, 0=transparent)
+  *
+  * @property {Number} [layersAspectRatioEpsilon=0.0001]
+  *     Maximum aspectRatio mismatch between 2 layers.
   *
   * @property {Number} [degrees=0]
   *     Initial rotation.
@@ -386,6 +414,10 @@
   * @property {String} [collectionLayout='horizontal']
   *
   * @property {Number} [collectionTileSize=800]
+  *
+  * @property {String} [crossOriginPolicy='Anonymous']
+  *      Valid values are 'Anonymous', 'use-credentials', and false. If false, canvas requests will
+  *      not use CORS, and the canvas will be tainted.
   *
   */
 
@@ -701,6 +733,7 @@ window.OpenSeadragon = window.OpenSeadragon || function( options ){
             tileSources:            null,
             tileHost:               null,
             initialPage:            0,
+            crossOriginPolicy:      'Anonymous',
             
             //PAN AND ZOOM SETTINGS AND CONSTRAINTS
             panHorizontal:          true,
@@ -755,6 +788,12 @@ window.OpenSeadragon = window.OpenSeadragon || function( options ){
 
             // INITIAL ROTATION
             degrees:                0,
+
+            // APPEARANCE
+            opacity:                1,
+
+            // LAYERS SETTINGS
+            layersAspectRatioEpsilon:   0.0001,
 
             //REFERENCE STRIP SETTINGS
             showReferenceStrip:          false,
@@ -1395,6 +1434,52 @@ window.OpenSeadragon = window.OpenSeadragon || function( options ){
             }
         },
 
+        /**
+         * Find the first index at which an element is found in an array or -1
+         * if not present.
+         *
+         * Code taken and adapted from
+         * https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/indexOf#Compatibility
+         *
+         * @function
+         * @param {Array} array The array from which to find the element
+         * @param {Object} searchElement The element to find
+         * @param {Number} [fromIndex=0] Index to start research.
+         * @returns {Number} The index of the element in the array.
+         */
+        indexOf: function( array, searchElement, fromIndex ) {
+            if ( Array.prototype.indexOf ) {
+                this.indexOf = function( array, searchElement, fromIndex ) {
+                    return array.indexOf( searchElement, fromIndex );
+                };
+            } else {
+                this.indexOf = function( array, searchElement, fromIndex ) {
+                    var i,
+                        pivot = ( fromIndex ) ? fromIndex : 0,
+                        length;
+                    if ( !array ) {
+                        throw new TypeError( );
+                    }
+
+                    length = array.length;
+                    if ( length === 0 || pivot >= length ) {
+                        return -1;
+                    }
+
+                    if ( pivot < 0 ) {
+                        pivot = length - Math.abs( pivot );
+                    }
+
+                    for ( i = pivot; i < length; i++ ) {
+                        if ( array[i] === searchElement ) {
+                            return i;
+                        }
+                    }
+                    return -1;
+                };
+            }
+            return this.indexOf( array, searchElement, fromIndex );
+        },
 
         /**
          * Remove the specified CSS class from the element.
@@ -2606,98 +2691,35 @@ $.EventSource.prototype = /** @lends OpenSeadragon.EventSource.prototype */{
 
 
     /**
-     * @class GesturePoint
-     * @classdesc Represents a point of contact on the screen made by a mouse cursor, pen, touch,
-     * or other pointing device.
+     * Represents a point of contact on the screen made by a mouse cursor, pen, touch, or other pointing device.
      *
-     * @memberof OpenSeadragon
-     * @param {Number} x The vector component 'x'.
-     * @param {Number} y The vector component 'y'.
-     * @param {Number} width The vector component 'height'.
-     * @param {Number} height The vector component 'width'.
+     * @typedef {Object} GesturePoint
+     * @memberof OpenSeadragon.MouseTracker
+     *
+     * @property {Number} id
+     *     Identifier unique from all other active GesturePoints for a given pointer device.
+     * @property {String} type
+     *     "mouse", "touch", "pen", or "".
+     * @property {Boolean} isCaptured
+     *     True if input for the pointer is captured to the tracked element.
+     * @property {Boolean} insideElementPressed
+     *     True if mouse button pressed or contact point initiated inside the screen area of the tracked element.
+     * @property {Boolean} insideElement
+     *     True if mouse cursor or contact point is currently inside the screen area of the tracked element.
+     * @property {OpenSeadragon.Point} startPos
+     *     The initial pointer position, relative to the page including any scrolling.
+     * @property {Number} startTime
+     *     The initial pointer contact time, in milliseconds.
+     * @property {OpenSeadragon.Point} lastPos
+     *     The last pointer position, relative to the page including any scrolling.
+     * @property {Number} lastTime
+     *     The last pointer contact time, in milliseconds.
+     * @property {OpenSeadragon.Point} currentPos
+     *     The current pointer position, relative to the page including any scrolling.
+     * @property {Number} currentTime
+     *     The current pointer contact time, in milliseconds.
      */
-    $.GesturePoint = function( options ) {
-        /**
-         * Identifier unique from all other active GesturePoints for a given pointer device.
-         * @member {Number} id
-         * @memberof OpenSeadragon.GesturePoint#
-         */
-        this.id = options.id || 0 | 0;
-        /**
-         * 'mouse', 'touch', 'pen', or ''
-         * @member {String} type
-         * @memberof OpenSeadragon.GesturePoint#
-         */
-        this.type = options.type || '';
-        /**
-         * 
-         * @member {Boolean} isCaptured
-         * @memberof OpenSeadragon.GesturePoint#
-         */
-        this.isCaptured = options.isCaptured || false;
-        /**
-         * 
-         * @member {Boolean} insideElementPressed
-         * @memberof OpenSeadragon.GesturePoint#
-         */
-        this.insideElementPressed = options.insideElementPressed || false;
-        /**
-         * 
-         * @member {Boolean} insideElement
-         * @memberof OpenSeadragon.GesturePoint#
-         */
-        this.insideElement = options.insideElement || false;
-        /**
-         * 
-         * @member {OpenSeadragon.Point} startPos
-         * @memberof OpenSeadragon.GesturePoint#
-         */
-        this.startPos = options.startPos || null;
-        /**
-         * 
-         * @member {Number} startTime
-         * @memberof OpenSeadragon.GesturePoint#
-         */
-        this.startTime = options.startTime || 0 | 0;
-        /**
-         * 
-         * @member {OpenSeadragon.Point} 
-         * @memberof OpenSeadragon.GesturePoint#
-         */
-        this.lastPos = options.lastPos || null;
-        /**
-         * 
-         * @member {Number} lastTime
-         * @memberof OpenSeadragon.GesturePoint#
-         */
-        this.lastTime = options.lastTime || 0 | 0;
-        /**
-         * 
-         * @member {OpenSeadragon.Point} currentPos
-         * @memberof OpenSeadragon.GesturePoint#
-         */
-        this.currentPos = options.currentPos || null;
-        /**
-         * 
-         * @member {Number} currentTime
-         * @memberof OpenSeadragon.GesturePoint#
-         */
-        this.currentTime = options.currentTime || 0 | 0;
-    };
 
-    $.GesturePoint.prototype = /** @lends OpenSeadragon.GesturePoint.prototype */{
-
-        /**
-         * The aspect ratio is simply the ratio of width to height.
-         * @function
-         * @returns {Number} The ratio of width to height.
-         */
-        //getAspectRatio: function () {
-        //    return this.width / this.height;
-        //}
-    };
-
- 
     /**
      * @class MouseTracker
      * @classdesc Provides simplified handling of common mouse, touch, and keyboard
@@ -2865,7 +2887,7 @@ $.EventSource.prototype = /** @lends OpenSeadragon.EventSource.prototype */{
             pointercancel:         function ( event ) { onPointerCancel( _this, event ); },
             MSPointerCancel:       function ( event ) { onPointerCancel( _this, event ); },
 
-            tracking: false,
+            tracking:              false,
             capturing:             false,
             // Contact Points
             mousePoints:           {},
@@ -2875,7 +2897,7 @@ $.EventSource.prototype = /** @lends OpenSeadragon.EventSource.prototype */{
             penPoints:             {},
             penPointCount:         0,
             // Tracking for pinch gesture
-            pinchGesturePoints:    [],
+            pinchGPoints:          [],
             lastPinchDist:         0,
             currentPinchDist:      0,
             lastPinchCenter:       null,
@@ -2935,6 +2957,8 @@ $.EventSource.prototype = /** @lends OpenSeadragon.EventSource.prototype */{
          * @param {Object} event
          * @param {OpenSeadragon.MouseTracker} event.eventSource
          *      A reference to the tracker instance.
+         * @param {String} pointerType
+         *     "mouse", "touch", "pen", or "".
          * @param {OpenSeadragon.Point} event.position
          *      The position of the event relative to the tracked element.
          * @param {Boolean} event.insideElementPressed
@@ -2943,7 +2967,7 @@ $.EventSource.prototype = /** @lends OpenSeadragon.EventSource.prototype */{
          * @param {Boolean} event.buttonDownAny
          *      Was the button down anywhere in the screen during the event.
          * @param {Boolean} event.isTouchEvent
-         *      True if the original event is a touch event, otherwise false. <span style="color:red;">Deprecated. Examine originalEvent instead.</span>
+         *      True if the original event is a touch event, otherwise false. <span style="color:red;">Deprecated. Use pointerType and/or originalEvent instead.</span>
          * @param {Object} event.originalEvent
          *      The original event object.
          * @param {Boolean} event.preventDefaultAction
@@ -2960,6 +2984,8 @@ $.EventSource.prototype = /** @lends OpenSeadragon.EventSource.prototype */{
          * @param {Object} event
          * @param {OpenSeadragon.MouseTracker} event.eventSource
          *      A reference to the tracker instance.
+         * @param {String} pointerType
+         *     "mouse", "touch", "pen", or "".
          * @param {OpenSeadragon.Point} event.position
          *      The position of the event relative to the tracked element.
          * @param {Boolean} event.insideElementPressed
@@ -2968,7 +2994,7 @@ $.EventSource.prototype = /** @lends OpenSeadragon.EventSource.prototype */{
          * @param {Boolean} event.buttonDownAny
          *      Was the button down anywhere in the screen during the event.
          * @param {Boolean} event.isTouchEvent
-         *      True if the original event is a touch event, otherwise false. <span style="color:red;">Deprecated. Examine originalEvent instead.</span>
+         *      True if the original event is a touch event, otherwise false. <span style="color:red;">Deprecated. Use pointerType and/or originalEvent instead.</span>
          * @param {Object} event.originalEvent
          *      The original event object.
          * @param {Boolean} event.preventDefaultAction
@@ -2985,10 +3011,12 @@ $.EventSource.prototype = /** @lends OpenSeadragon.EventSource.prototype */{
          * @param {Object} event
          * @param {OpenSeadragon.MouseTracker} event.eventSource
          *      A reference to the tracker instance.
+         * @param {String} pointerType
+         *     "mouse", "touch", "pen", or "".
          * @param {OpenSeadragon.Point} event.position
          *      The position of the event relative to the tracked element.
          * @param {Boolean} event.isTouchEvent
-         *      True if the original event is a touch event, otherwise false. <span style="color:red;">Deprecated. Examine originalEvent instead.</span>
+         *      True if the original event is a touch event, otherwise false. <span style="color:red;">Deprecated. Use pointerType and/or originalEvent instead.</span>
          * @param {Object} event.originalEvent
          *      The original event object.
          * @param {Boolean} event.preventDefaultAction
@@ -3005,6 +3033,8 @@ $.EventSource.prototype = /** @lends OpenSeadragon.EventSource.prototype */{
          * @param {Object} event
          * @param {OpenSeadragon.MouseTracker} event.eventSource
          *      A reference to the tracker instance.
+         * @param {String} pointerType
+         *     "mouse", "touch", "pen", or "".
          * @param {OpenSeadragon.Point} event.position
          *      The position of the event relative to the tracked element.
          * @param {Boolean} event.insideElementPressed
@@ -3013,7 +3043,7 @@ $.EventSource.prototype = /** @lends OpenSeadragon.EventSource.prototype */{
          * @param {Boolean} event.insideElementReleased
          *      True if the cursor still inside the tracked element when the button was released.
          * @param {Boolean} event.isTouchEvent
-         *      True if the original event is a touch event, otherwise false. <span style="color:red;">Deprecated. Examine originalEvent instead.</span>
+         *      True if the original event is a touch event, otherwise false. <span style="color:red;">Deprecated. Use pointerType and/or originalEvent instead.</span>
          * @param {Object} event.originalEvent
          *      The original event object.
          * @param {Boolean} event.preventDefaultAction
@@ -3030,10 +3060,12 @@ $.EventSource.prototype = /** @lends OpenSeadragon.EventSource.prototype */{
          * @param {Object} event
          * @param {OpenSeadragon.MouseTracker} event.eventSource
          *      A reference to the tracker instance.
+         * @param {String} pointerType
+         *     "mouse", "touch", "pen", or "".
          * @param {OpenSeadragon.Point} event.position
          *      The position of the event relative to the tracked element.
          * @param {Boolean} event.isTouchEvent
-         *      True if the original event is a touch event, otherwise false. <span style="color:red;">Deprecated. Examine originalEvent instead.</span>
+         *      True if the original event is a touch event, otherwise false. <span style="color:red;">Deprecated. Use pointerType and/or originalEvent instead.</span>
          * @param {Object} event.originalEvent
          *      The original event object.
          * @param {Boolean} event.preventDefaultAction
@@ -3050,6 +3082,8 @@ $.EventSource.prototype = /** @lends OpenSeadragon.EventSource.prototype */{
          * @param {Object} event
          * @param {OpenSeadragon.MouseTracker} event.eventSource
          *      A reference to the tracker instance.
+         * @param {String} pointerType
+         *     "mouse", "touch", "pen", or "".
          * @param {OpenSeadragon.Point} event.position
          *      The position of the event relative to the tracked element.
          * @param {Number} event.scroll
@@ -3057,7 +3091,7 @@ $.EventSource.prototype = /** @lends OpenSeadragon.EventSource.prototype */{
          * @param {Boolean} event.shift
          *      True if the shift key was pressed during this event.
          * @param {Boolean} event.isTouchEvent
-         *      True if the original event is a touch event, otherwise false. <span style="color:red;">Deprecated. Examine originalEvent instead.</span>
+         *      True if the original event is a touch event, otherwise false. <span style="color:red;">Deprecated. Use pointerType and/or originalEvent instead. Touch devices no longer generate scroll event.</span>
          * @param {Object} event.originalEvent
          *      The original event object.
          * @param {Boolean} event.preventDefaultAction
@@ -3074,6 +3108,8 @@ $.EventSource.prototype = /** @lends OpenSeadragon.EventSource.prototype */{
          * @param {Object} event
          * @param {OpenSeadragon.MouseTracker} event.eventSource
          *      A reference to the tracker instance.
+         * @param {String} pointerType
+         *     "mouse", "touch", "pen", or "".
          * @param {OpenSeadragon.Point} event.position
          *      The position of the event relative to the tracked element.
          * @param {Number} event.quick
@@ -3081,7 +3117,7 @@ $.EventSource.prototype = /** @lends OpenSeadragon.EventSource.prototype */{
          * @param {Boolean} event.shift
          *      True if the shift key was pressed during this event.
          * @param {Boolean} event.isTouchEvent
-         *      True if the original event is a touch event, otherwise false. <span style="color:red;">Deprecated. Examine originalEvent instead.</span>
+         *      True if the original event is a touch event, otherwise false. <span style="color:red;">Deprecated. Use pointerType and/or originalEvent instead.</span>
          * @param {Object} event.originalEvent
          *      The original event object.
          * @param {Boolean} event.preventDefaultAction
@@ -3098,6 +3134,8 @@ $.EventSource.prototype = /** @lends OpenSeadragon.EventSource.prototype */{
          * @param {Object} event
          * @param {OpenSeadragon.MouseTracker} event.eventSource
          *      A reference to the tracker instance.
+         * @param {String} pointerType
+         *     "mouse", "touch", "pen", or "".
          * @param {OpenSeadragon.Point} event.position
          *      The position of the event relative to the tracked element.
          * @param {OpenSeadragon.Point} event.delta
@@ -3105,7 +3143,7 @@ $.EventSource.prototype = /** @lends OpenSeadragon.EventSource.prototype */{
          * @param {Boolean} event.shift
          *      True if the shift key was pressed during this event.
          * @param {Boolean} event.isTouchEvent
-         *      True if the original event is a touch event, otherwise false. <span style="color:red;">Deprecated. Examine originalEvent instead.</span>
+         *      True if the original event is a touch event, otherwise false. <span style="color:red;">Deprecated. Use pointerType and/or originalEvent instead.</span>
          * @param {Object} event.originalEvent
          *      The original event object.
          * @param {Boolean} event.preventDefaultAction
@@ -3122,6 +3160,8 @@ $.EventSource.prototype = /** @lends OpenSeadragon.EventSource.prototype */{
          * @param {Object} event
          * @param {OpenSeadragon.MouseTracker} event.eventSource
          *      A reference to the tracker instance.
+         * @param {String} pointerType
+         *     "mouse", "touch", "pen", or "".
          * @param {OpenSeadragon.Point} event.position
          *      The position of the event relative to the tracked element.
          * @param {OpenSeadragon.Point} event.delta
@@ -3129,7 +3169,7 @@ $.EventSource.prototype = /** @lends OpenSeadragon.EventSource.prototype */{
          * @param {Boolean} event.shift
          *      True if the shift key was pressed during this event.
          * @param {Boolean} event.isTouchEvent
-         *      True if the original event is a touch event, otherwise false. <span style="color:red;">Deprecated. Examine originalEvent instead.</span>
+         *      True if the original event is a touch event, otherwise false. <span style="color:red;">Deprecated. Use pointerType and/or originalEvent instead.</span>
          * @param {Object} event.originalEvent
          *      The original event object.
          * @param {Boolean} event.preventDefaultAction
@@ -3146,6 +3186,8 @@ $.EventSource.prototype = /** @lends OpenSeadragon.EventSource.prototype */{
          * @param {Object} event
          * @param {OpenSeadragon.MouseTracker} event.eventSource
          *      A reference to the tracker instance.
+         * @param {String} pointerType
+         *     "mouse", "touch", "pen", or "".
          * @param {OpenSeadragon.Point} event.position
          *      The position of the event relative to the tracked element.
          * @param {OpenSeadragon.Point} event.delta
@@ -3153,7 +3195,7 @@ $.EventSource.prototype = /** @lends OpenSeadragon.EventSource.prototype */{
          * @param {Boolean} event.shift
          *      True if the shift key was pressed during this event.
          * @param {Boolean} event.isTouchEvent
-         *      True if the original event is a touch event, otherwise false. <span style="color:red;">Deprecated. Examine originalEvent instead.</span>
+         *      True if the original event is a touch event, otherwise false. <span style="color:red;">Deprecated. Use pointerType and/or originalEvent instead.</span>
          * @param {Object} event.originalEvent
          *      The original event object.
          * @param {Boolean} event.preventDefaultAction
@@ -3170,10 +3212,12 @@ $.EventSource.prototype = /** @lends OpenSeadragon.EventSource.prototype */{
          * @param {Object} event
          * @param {OpenSeadragon.MouseTracker} event.eventSource
          *      A reference to the tracker instance.
+         * @param {String} pointerType
+         *     "mouse", "touch", "pen", or "".
          * @param {OpenSeadragon.Point} event.position
          *      The position of the event relative to the tracked element.
          * @param {Boolean} event.isTouchEvent
-         *      True if the original event is a touch event, otherwise false. <span style="color:red;">Deprecated. Examine originalEvent instead.</span>
+         *      True if the original event is a touch event, otherwise false. <span style="color:red;">Deprecated. Use pointerType and/or originalEvent instead.</span>
          * @param {Object} event.originalEvent
          *      The original event object.
          * @param {Boolean} event.preventDefaultAction
@@ -3285,7 +3329,7 @@ $.EventSource.prototype = /** @lends OpenSeadragon.EventSource.prototype */{
         }
         if ( 'ongesturestart' in window ) {
             // iOS (see https://developer.apple.com/library/safari/documentation/UserExperience/Reference/GestureEventClassReference/GestureEvent/GestureEvent.html)
-            //   Subscribe to these to prevent default handling
+            //   Subscribe to these to prevent default gesture handling
             $.MouseTracker.subscribeEvents.push( "gesturestart", "gesturechange" );
         }
         $.MouseTracker.mousePointerId = "legacy-mouse";
@@ -3673,29 +3717,29 @@ $.EventSource.prototype = /** @lends OpenSeadragon.EventSource.prototype */{
      */
     function onMouseOver( tracker, event ) {
         var time,
-            point,
-            pointer;
+            position,
+            gPoint;
 
         event = $.getEvent(event);
 
         time = $.now();
-        point = getMouseAbsolute( event );
+        position = getMouseAbsolute( event );
 
-        pointer = {
+        gPoint = {
             id: $.MouseTracker.mousePointerId,
             type: 'mouse',
             //isCaptured: true,
             //insideElementPressed: true,
             insideElement: true,
-            //startPos: point,
+            //startPos: position,
             //startTime: time,
-            //lastPos: point,
+            //lastPos: position,
             //lastTime: time,
-            currentPos: point,
+            currentPos: position,
             currentTime: time
         };
 
-        updatePointersOver( tracker, event, [pointer] );
+        updatePointersOver( tracker, event, [gPoint] );
     }
 
 
@@ -3705,31 +3749,31 @@ $.EventSource.prototype = /** @lends OpenSeadragon.EventSource.prototype */{
      */
     function onMouseOut( tracker, event ) {
         var time,
-            point,
-            pointer;
+            position,
+            gPoint;
 
         event = $.getEvent(event);
 
         var eventOrTouchPoint = event;//isTouch ? event.touches[ 0 ] : event;
 
         time = $.now();
-        point = getMouseAbsolute( event );
+        position = getMouseAbsolute( event );
 
-        pointer = {
+        gPoint = {
             id: $.MouseTracker.mousePointerId,
             type: 'mouse',
             //isCaptured: true,
             //insideElementPressed: true,
             insideElement: false,
-            //startPos: point,
+            //startPos: position,
             //startTime: time,
-            //lastPos: point,
+            //lastPos: position,
             //lastTime: time,
-            currentPos: point,
+            currentPos: position,
             currentTime: time
         };
 
-        updatePointersOut( tracker, event, [pointer] );
+        updatePointersOut( tracker, event, [gPoint] );
     }
 
 
@@ -3740,8 +3784,8 @@ $.EventSource.prototype = /** @lends OpenSeadragon.EventSource.prototype */{
     function onMouseDown( tracker, event ) {
         var delegate = THIS[ tracker.hash ],
             time,
-            point,
-            pointer;
+            position,
+            gPoint;
 
         event = $.getEvent(event);
 
@@ -3750,23 +3794,23 @@ $.EventSource.prototype = /** @lends OpenSeadragon.EventSource.prototype */{
         }
 
         time = $.now();
-        point = getMouseAbsolute( event );
+        position = getMouseAbsolute( event );
 
-        pointer = {
+        gPoint = {
             id: $.MouseTracker.mousePointerId,
             type: 'mouse',
             isCaptured: true,
             insideElementPressed: true,
             insideElement: true,
-            startPos: point,
+            startPos: position,
             startTime: time,
-            lastPos: point,
+            lastPos: position,
             lastTime: time,
-            currentPos: point,
+            currentPos: position,
             currentTime: time
         };
 
-        addPointers( tracker, event, [pointer] );
+        addPointers( tracker, event, [gPoint] );
 
         if ( tracker.pressHandler || tracker.dragHandler || tracker.pinchHandler || tracker.swipeHandler ) {
             $.cancelEvent( event );
@@ -3805,9 +3849,9 @@ $.EventSource.prototype = /** @lends OpenSeadragon.EventSource.prototype */{
      */
     function onMouseUpCaptured( tracker, event ) {
         var delegate = THIS[ tracker.hash ],
-            pointer = delegate.mousePoints[ $.MouseTracker.mousePointerId ] || null;
+            gPoint = delegate.mousePoints[ $.MouseTracker.mousePointerId ] || null;
 
-        if ( !pointer.insideElement ) {
+        if ( !gPoint.insideElement ) {
             handleMouseUp( tracker, event );
         }
 
@@ -3895,6 +3939,33 @@ $.EventSource.prototype = /** @lends OpenSeadragon.EventSource.prototype */{
      * @inner
      */
     function onTouchEnter( tracker, event ) {
+        var time,
+            position,
+            i,
+            touchCount = event.changedTouches.length,
+            gPoints = [];
+
+        time = $.now();
+
+        for ( i = 0; i < touchCount; i++ ) {
+            position = getMouseAbsolute( event.changedTouches[ i ] );
+
+            gPoints.push( {
+                id: event.changedTouches[ i ].identifier,
+                type: 'touch',
+                //isCaptured: false,
+                //insideElementPressed: true,
+                insideElement: true,
+                //startPos: position,
+                //startTime: time,
+                //lastPos: position,
+                //lastTime: time,
+                currentPos: position,
+                currentTime: time
+            } );
+        }
+
+        updatePointersOver( tracker, event, gPoints );
     }
 
 
@@ -3903,6 +3974,33 @@ $.EventSource.prototype = /** @lends OpenSeadragon.EventSource.prototype */{
      * @inner
      */
     function onTouchLeave( tracker, event ) {
+        var time,
+            position,
+            i,
+            touchCount = event.changedTouches.length,
+            gPoints = [];
+
+        time = $.now();
+
+        for ( i = 0; i < touchCount; i++ ) {
+            position = getMouseAbsolute( event.changedTouches[ i ] );
+
+            gPoints.push( {
+                id: event.changedTouches[ i ].identifier,
+                type: 'touch',
+                //isCaptured: false,
+                //insideElementPressed: true,
+                insideElement: false,
+                //startPos: position,
+                //startTime: time,
+                //lastPos: position,
+                //lastTime: time,
+                currentPos: position,
+                currentTime: time
+            } );
+        }
+
+        updatePointersOut( tracker, event, gPoints );
     }
 
 
@@ -3913,54 +4011,56 @@ $.EventSource.prototype = /** @lends OpenSeadragon.EventSource.prototype */{
     function onTouchStart( tracker, event ) {
         var delegate = THIS[ tracker.hash ],
             time,
-            point,
-            pointer,
+            position,
+            gPoint,
             i,
             touchCount = event.changedTouches.length,
-            pointers = [];
+            gPoints = [];
 
         time = $.now();
 
         if ( touchCount > 0 && delegate.touchPointCount === 0 ) {
-            pointer = {
+            gPoint = {
                 id: event.changedTouches[ 0 ].identifier,
                 type: 'touch',
                 //isCaptured: false,
                 //insideElementPressed: true,
                 insideElement: true,
-                //startPos: point,
+                //startPos: position,
                 //startTime: time,
-                //lastPos: point,
+                //lastPos: position,
                 //lastTime: time,
                 currentPos: getMouseAbsolute( event.changedTouches[ 0 ] ),
                 currentTime: time
             };
-            updatePointersOver( tracker, event, [pointer] );
+            updatePointersOver( tracker, event, [gPoint] );
         }
 
         for ( i = 0; i < touchCount; i++ ) {
-            point = getMouseAbsolute( event.changedTouches[ i ] );
+            position = getMouseAbsolute( event.changedTouches[ i ] );
 
-            pointers.push( {
+            gPoints.push( {
                 id: event.changedTouches[ i ].identifier,
                 type: 'touch',
                 isCaptured: false,
                 insideElementPressed: true,
                 insideElement: true,
-                startPos: point,
+                startPos: position,
                 startTime: time,
-                lastPos: point,
+                lastPos: position,
                 lastTime: time,
-                currentPos: point,
+                currentPos: position,
                 currentTime: time
             } );
         }
 
-        addPointers( tracker, event, pointers );
+        addPointers( tracker, event, gPoints );
 
-        event.stopPropagation();
-        event.preventDefault();
-        return false;
+        if ( tracker.pressHandler || tracker.dragHandler || tracker.pinchHandler || tracker.swipeHandler ) {
+            $.stopEvent(event);
+            $.cancelEvent(event);
+            return false;
+        }
 ////****************************************************************
 //        var touchA,
 //            touchB;
@@ -4001,54 +4101,56 @@ $.EventSource.prototype = /** @lends OpenSeadragon.EventSource.prototype */{
     function onTouchEnd( tracker, event ) {
         var delegate = THIS[ tracker.hash ],
             time,
-            point,
-            pointer,
+            position,
+            gPoint,
             i,
             touchCount = event.changedTouches.length,
-            pointers = [];
+            gPoints = [];
 
         time = $.now();
 
         for ( i = 0; i < touchCount; i++ ) {
-            point = getMouseAbsolute( event.changedTouches[ i ] );
+            position = getMouseAbsolute( event.changedTouches[ i ] );
 
-            pointers.push( {
+            gPoints.push( {
                 id: event.changedTouches[ i ].identifier,
                 type: 'touch',
                 isCaptured: false,
                 //insideElementPressed: true,
                 //insideElement: true,
-                //startPos: point,
+                //startPos: position,
                 //startTime: time,
-                //lastPos: point,
+                //lastPos: position,
                 //lastTime: time,
-                currentPos: point,
+                currentPos: position,
                 currentTime: time
             } );
         }
 
-        removePointers( tracker, event, pointers );
+        removePointers( tracker, event, gPoints );
 
         if ( touchCount > 0 && delegate.touchPointCount === 0 ) {
-            pointer = {
+            gPoint = {
                 id: event.changedTouches[ 0 ].identifier,
                 type: 'touch',
                 //isCaptured: false,
                 //insideElementPressed: true,
                 insideElement: false,
-                //startPos: point,
+                //startPos: position,
                 //startTime: time,
-                //lastPos: point,
+                //lastPos: position,
                 //lastTime: time,
                 currentPos: getMouseAbsolute( event.changedTouches[ 0 ] ),
                 currentTime: time
             };
-            updatePointersOut( tracker, event, [pointer] );
+            updatePointersOut( tracker, event, [gPoint] );
         }
 
-        event.stopPropagation();
-        event.preventDefault();
-        return false;
+        if ( tracker.pressHandler || tracker.dragHandler || tracker.pinchHandler || tracker.swipeHandler ) {
+            $.stopEvent(event);
+            $.cancelEvent(event);
+            return false;
+        }
 //****************************************************************************************
 //        if ( event.touches.length === 0 &&
 //            event.targetTouches.length === 0 &&
@@ -4076,36 +4178,38 @@ $.EventSource.prototype = /** @lends OpenSeadragon.EventSource.prototype */{
      */
     function onTouchMove( tracker, event ) {
         var time,
-            point,
+            position,
             i,
             touchCount = event.changedTouches.length,
-            pointers = [];
+            gPoints = [];
 
         time = $.now();
 
         for ( i = 0; i < touchCount; i++ ) {
-            point = getMouseAbsolute( event.changedTouches[ i ] );
+            position = getMouseAbsolute( event.changedTouches[ i ] );
 
-            pointers.push( {
+            gPoints.push( {
                 id: event.changedTouches[ i ].identifier,
                 type: 'touch',
                 //isCaptured: false,
                 //insideElementPressed: true,
                 //insideElement: true,
-                //startPos: point,
+                //startPos: position,
                 //startTime: time,
-                //lastPos: point,
+                //lastPos: position,
                 //lastTime: time,
-                currentPos: point,
+                currentPos: position,
                 currentTime: time
             } );
         }
 
-        updatePointers( tracker, event, pointers );
+        updatePointers( tracker, event, gPoints );
 
-        event.stopPropagation();
-        event.preventDefault();
-        return false;
+        if ( tracker.pressHandler || tracker.dragHandler || tracker.pinchHandler || tracker.swipeHandler ) {
+            $.stopEvent(event);
+            $.cancelEvent(event);
+            return false;
+        }
 //*******************************************************************************
 //        var touchA,
 //            touchB,
@@ -4163,6 +4267,33 @@ $.EventSource.prototype = /** @lends OpenSeadragon.EventSource.prototype */{
      * @inner
      */
     function onTouchCancel( tracker, event ) {
+        var //time,
+            //position,
+            i,
+            touchCount = event.changedTouches.length,
+            gPoints = [];
+        
+        //time = $.now();
+
+        for ( i = 0; i < touchCount; i++ ) {
+            //position = getMouseAbsolute( event.changedTouches[ i ] );
+
+            gPoints.push( {
+                id: event.changedTouches[ i ].identifier,
+                type: 'touch',
+                //isCaptured: false,
+                //insideElementPressed: true,
+                //insideElement: true,
+                //startPos: position,
+                //startTime: time,
+                //lastPos: position,
+                //lastTime: time,
+                //currentPos: position,
+                //currentTime: time
+            } );
+        }
+
+        cancelPointers( tracker, event, gPoints );
     }
 
 
@@ -4194,27 +4325,27 @@ $.EventSource.prototype = /** @lends OpenSeadragon.EventSource.prototype */{
      */
     function onPointerOver( tracker, event ) {
         var time,
-            point,
-            pointer;
+            position,
+            gPoint;
 
         time = $.now();
-        point = getMouseAbsolute( event );
+        position = getMouseAbsolute( event );
 
-        pointer = {
+        gPoint = {
             id: event.pointerId,
             type: getPointerType( event ),
             //isCaptured: false,
             //insideElementPressed: true,
             insideElement: true,
-            //startPos: point,
+            //startPos: position,
             //startTime: time,
-            //lastPos: point,
+            //lastPos: position,
             //lastTime: time,
-            currentPos: point,
+            currentPos: position,
             currentTime: time
         };
 
-        updatePointersOver( tracker, event, [pointer] );
+        updatePointersOver( tracker, event, [gPoint] );
     }
 
 
@@ -4224,44 +4355,44 @@ $.EventSource.prototype = /** @lends OpenSeadragon.EventSource.prototype */{
      */
     function onPointerOut( tracker, event ) {
         var time,
-            point,
-            pointer;
+            position,
+            gPoint;
 
         time = $.now();
-        point = getMouseAbsolute( event );
+        position = getMouseAbsolute( event );
 
-        pointer = {
+        gPoint = {
             id: event.pointerId,
             type: getPointerType( event ),
             //isCaptured: false,
             //insideElementPressed: true,
             insideElement: false,
-            //startPos: point,
+            //startPos: position,
             //startTime: time,
-            //lastPos: point,
+            //lastPos: position,
             //lastTime: time,
-            currentPos: point,
+            currentPos: position,
             currentTime: time
         };
 
-        updatePointersOut( tracker, event, [pointer] );
+        updatePointersOut( tracker, event, [gPoint] );
     }
 
 
 //$.MouseTracker.mousePointerId = "legacy-mouse";
 //$.MouseTracker.unprefixedPointerEvents = false;
 //$.MouseTracker.maxTouchPoints = 10;
-//    function addPointers( tracker, event, pointers ) {
+//    function addPointers( tracker, event, gPoints ) {
 //    }
-//    function updatePointersOver( tracker, event, pointers ) {
+//    function updatePointersOver( tracker, event, gPoints ) {
 //    }
-//    function updatePointersOut( tracker, event, pointers ) {
+//    function updatePointersOut( tracker, event, gPoints ) {
 //    }
-//    function updatePointers( tracker, event, pointers ) {
+//    function updatePointers( tracker, event, gPoints ) {
 //    }
-//    function removePointers( tracker, event, pointers ) {
+//    function removePointers( tracker, event, gPoints ) {
 //    }
-//    function cancelPointers( tracker, event, pointers ) {
+//    function cancelPointers( tracker, event, gPoints ) {
 //    }
 //pointer = {
 //    id: x,            // getPointerType( event )
@@ -4295,8 +4426,8 @@ $.EventSource.prototype = /** @lends OpenSeadragon.EventSource.prototype */{
     function onPointerDown( tracker, event ) {
         var delegate = THIS[ tracker.hash ],
             time,
-            point,
-            pointer;
+            position,
+            gPoint;
 
         if ( event.button == 2 ) {
             return;
@@ -4310,30 +4441,29 @@ $.EventSource.prototype = /** @lends OpenSeadragon.EventSource.prototype */{
         }
 
         time = $.now();
-        point = getMouseAbsolute( event );
+        position = getMouseAbsolute( event );
 
-        pointer = {
+        gPoint = {
             id: event.pointerId,
             type: getPointerType( event ),
             isCaptured: true,
             insideElementPressed: true,
             insideElement: true,
-            startPos: point,
+            startPos: position,
             startTime: time,
-            lastPos: point,
+            lastPos: position,
             lastTime: time,
-            currentPos: point,
+            currentPos: position,
             currentTime: time
         };
 
-        addPointers( tracker, event, [pointer] );
+        addPointers( tracker, event, [gPoint] );
 
-        //if ( tracker.pressHandler || tracker.dragHandler || tracker.pinchHandler || tracker.swipeHandler ) {
-        //    $.cancelEvent(event);
-        event.stopPropagation();
-        event.preventDefault();
+        if ( tracker.pressHandler || tracker.dragHandler || tracker.pinchHandler || tracker.swipeHandler ) {
+            $.stopEvent(event);
+            $.cancelEvent(event);
             return false;
-        //}
+        }
     }
 
 
@@ -4344,8 +4474,8 @@ $.EventSource.prototype = /** @lends OpenSeadragon.EventSource.prototype */{
     function onPointerUp( tracker, event ) {
         var delegate = THIS[ tracker.hash ],
             time,
-            point,
-            pointer;
+            position,
+            gPoint;
 
         if ( event.button == 2 ) {
             return;
@@ -4359,30 +4489,29 @@ $.EventSource.prototype = /** @lends OpenSeadragon.EventSource.prototype */{
         }
 
         time = $.now();
-        point = getMouseAbsolute( event );
+        position = getMouseAbsolute( event );
 
-        pointer = {
+        gPoint = {
             id: event.pointerId,
             type: getPointerType( event ),
             isCaptured: false,
             //insideElementPressed: true,
             //insideElement: true,
-            //startPos: point,
+            //startPos: position,
             //startTime: time,
-            //lastPos: point,
+            //lastPos: position,
             //lastTime: time,
-            currentPos: point,
+            currentPos: position,
             currentTime: time
         };
 
-        removePointers(tracker, event, [pointer]);
+        removePointers(tracker, event, [gPoint]);
 
-        //if ( tracker.pressHandler || tracker.dragHandler || tracker.pinchHandler || tracker.swipeHandler ) {
-        //    $.cancelEvent(event);
-        event.stopPropagation();
-        event.preventDefault();
-        return false;
-        //}
+        if ( tracker.pressHandler || tracker.dragHandler || tracker.pinchHandler || tracker.swipeHandler ) {
+            $.stopEvent(event);
+            $.cancelEvent(event);
+            return false;
+        }
     }
 
 
@@ -4393,34 +4522,33 @@ $.EventSource.prototype = /** @lends OpenSeadragon.EventSource.prototype */{
     function onPointerMove( tracker, event ) {
         // Pointer changed coordinates, button state, pressure, tilt, or contact geometry (e.g. width and height)
         var time,
-            point,
-            pointer;
+            position,
+            gPoint;
 
         time = $.now();
-        point = getMouseAbsolute( event );
+        position = getMouseAbsolute( event );
 
-        pointer = {
+        gPoint = {
             id: event.pointerId,
             type: getPointerType( event ),
             //isCaptured: false,
             //insideElementPressed: true,
             //insideElement: true,
-            //startPos: point,
+            //startPos: position,
             //startTime: time,
-            //lastPos: point,
+            //lastPos: position,
             //lastTime: time,
-            currentPos: point,
+            currentPos: position,
             currentTime: time
         };
 
-        updatePointers(tracker, event, [pointer]);
+        updatePointers(tracker, event, [gPoint]);
 
-        //if ( tracker.pressHandler || tracker.dragHandler || tracker.pinchHandler || tracker.swipeHandler ) {
-        //    $.cancelEvent(event);
-        event.stopPropagation();
-        event.preventDefault();
-        return false;
-        //}
+        if ( tracker.pressHandler || tracker.dragHandler || tracker.pinchHandler || tracker.swipeHandler ) {
+            $.stopEvent(event);
+            $.cancelEvent(event);
+            return false;
+        }
     }
 
 
@@ -4430,27 +4558,27 @@ $.EventSource.prototype = /** @lends OpenSeadragon.EventSource.prototype */{
      */
     function onPointerCancel( tracker, event ) {
         var //time,
-            //point,
-            pointer;
+            //position,
+            gPoint;
 
         //time = $.now();
-        //point = getMouseAbsolute( event );
+        //position = getMouseAbsolute( event );
 
-        pointer = {
+        gPoint = {
             id: event.pointerId,
             type: getPointerType( event ),
             //isCaptured: false,
             //insideElementPressed: true,
             //insideElement: true,
-            //startPos: point,
+            //startPos: position,
             //startTime: time,
-            //lastPos: point,
+            //lastPos: position,
             //lastTime: time,
-            //currentPos: point,
+            //currentPos: position,
             //currentTime: time
         };
 
-        cancelPointers( tracker, event, [pointer] );
+        cancelPointers( tracker, event, [gPoint] );
     }
 
 
@@ -4480,6 +4608,7 @@ $.EventSource.prototype = /** @lends OpenSeadragon.EventSource.prototype */{
             propagate = tracker.scrollHandler(
                 {
                     eventSource:          tracker,
+                    pointerType:          'mouse',
                     position:             getMouseRelative( event, tracker.element ),
                     scroll:               nDelta,
                     shift:                event.shiftKey,
@@ -4502,29 +4631,29 @@ $.EventSource.prototype = /** @lends OpenSeadragon.EventSource.prototype */{
      */
     function handleMouseMove( tracker, event ) {
         var time,
-            point,
-            pointer;
+            position,
+            gPoint;
 
         event = $.getEvent(event);
 
         time = $.now();
-        point = getMouseAbsolute( event );
+        position = getMouseAbsolute( event );
 
-        pointer = {
+        gPoint = {
             id: $.MouseTracker.mousePointerId,
             type: 'mouse',
             //isCaptured: false,
             //insideElementPressed: true,
             //insideElement: true,
-            //startPos: point,
+            //startPos: position,
             //startTime: time,
-            //lastPos: point,
+            //lastPos: position,
             //lastTime: time,
-            currentPos: point,
+            currentPos: position,
             currentTime: time
         };
 
-        updatePointers( tracker, event, [pointer] );
+        updatePointers( tracker, event, [gPoint] );
     }
 
 
@@ -4534,8 +4663,8 @@ $.EventSource.prototype = /** @lends OpenSeadragon.EventSource.prototype */{
      */
     function handleMouseUp( tracker, event ) {
         var time,
-            point,
-            pointer;
+            position,
+            gPoint;
 
         event = $.getEvent(event);
 
@@ -4544,23 +4673,23 @@ $.EventSource.prototype = /** @lends OpenSeadragon.EventSource.prototype */{
         }
 
         time = $.now();
-        point = getMouseAbsolute( event );
+        position = getMouseAbsolute( event );
 
-        pointer = {
+        gPoint = {
             id: $.MouseTracker.mousePointerId,
             type: 'mouse',
             isCaptured: false,
             //insideElementPressed: true,
             //insideElement: true,
-            //startPos: point,
+            //startPos: position,
             //startTime: time,
-            //lastPos: point,
+            //lastPos: position,
             //lastTime: time,
-            currentPos: point,
+            currentPos: position,
             currentTime: time
         };
 
-        removePointers( tracker, event, [pointer] );
+        removePointers( tracker, event, [gPoint] );
     }
 
 
@@ -4572,6 +4701,7 @@ $.EventSource.prototype = /** @lends OpenSeadragon.EventSource.prototype */{
         if ( tracker.stopHandler ) {
             tracker.stopHandler( {
                 eventSource:          tracker,
+                pointerType:          '',
                 position:             getMouseRelative( originalMoveEvent, tracker.element ),
                 isTouchEvent:         false,
                 originalEvent:        originalMoveEvent,
@@ -4585,17 +4715,17 @@ $.EventSource.prototype = /** @lends OpenSeadragon.EventSource.prototype */{
 //$.MouseTracker.mousePointerId = "legacy-mouse";
 //$.MouseTracker.unprefixedPointerEvents = false;
 //$.MouseTracker.maxTouchPoints = 10;
-//    function addPointers( tracker, event, pointers ) {
+//    function addPointers( tracker, event, gPoints ) {
 //    }
-//    function updatePointersOver( tracker, event, pointers ) {
+//    function updatePointersOver( tracker, event, gPoints ) {
 //    }
-//    function updatePointersOut( tracker, event, pointers ) {
+//    function updatePointersOut( tracker, event, gPoints ) {
 //    }
-//    function updatePointers( tracker, event, pointers ) {
+//    function updatePointers( tracker, event, gPoints ) {
 //    }
-//    function removePointers( tracker, event, pointers ) {
+//    function removePointers( tracker, event, gPoints ) {
 //    }
-//    function cancelPointers( tracker, event, pointers ) {
+//    function cancelPointers( tracker, event, gPoints ) {
 //    }
 //pointer = {
 //    id: x,            // getPointerType( event )
@@ -4627,44 +4757,44 @@ $.EventSource.prototype = /** @lends OpenSeadragon.EventSource.prototype */{
      * @private
      * @inner
      */
-    function addPointers( tracker, event, pointers ) {
+    function addPointers( tracker, event, gPoints ) {
         var delegate = THIS[ tracker.hash ],
             propagate,
             dispatchPress = false,
             i,
-            pointerCount = pointers.length,
-            curPointer;
+            gPointCount = gPoints.length,
+            curGPoint;
 
-        for ( i = 0; i < pointerCount; i++ ) {
-            curPointer = pointers[ i ];
-            if ( curPointer.type === 'mouse' ) {
+        for ( i = 0; i < gPointCount; i++ ) {
+            curGPoint = gPoints[ i ];
+            if ( curGPoint.type === 'mouse' ) {
                 if ( !delegate.mousePointCount ) {
-                    delegate.mousePoints[ curPointer.id ] = curPointer;
+                    delegate.mousePoints[ curGPoint.id ] = curGPoint;
                     delegate.mousePointCount++;
                     dispatchPress = true;
                 }
             }
-            else if ( curPointer.type === 'touch' ) {
+            else if ( curGPoint.type === 'touch' ) {
                 if ( !delegate.touchPointCount ) {
                     dispatchPress = true;
                 }
-                if ( !delegate.touchPoints[ curPointer.id ] ) {
-                    delegate.touchPoints[ curPointer.id ] = curPointer;
+                if ( !delegate.touchPoints[ curGPoint.id ] ) {
+                    delegate.touchPoints[ curGPoint.id ] = curGPoint;
                     delegate.touchPointCount++;
                     if ( delegate.touchPointCount == 2 && tracker.pinchHandler ) {
                         // Initialize for pinch gesture tracking
-                        delegate.pinchGesturePoints = [];
+                        delegate.pinchGPoints = [];
                         for ( var p in delegate.touchPoints ) {
-                            delegate.pinchGesturePoints.push( delegate.touchPoints[ p ] );
+                            delegate.pinchGPoints.push( delegate.touchPoints[ p ] );
                         }
-                        delegate.lastPinchDist = delegate.currentPinchDist = delegate.pinchGesturePoints[0].currentPos.distanceTo( delegate.pinchGesturePoints[1].currentPos );
-                        delegate.lastPinchCenter = delegate.currentPinchCenter = getCenterPoint( delegate.pinchGesturePoints[0].currentPos, delegate.pinchGesturePoints[1].currentPos );
+                        delegate.lastPinchDist = delegate.currentPinchDist = delegate.pinchGPoints[0].currentPos.distanceTo( delegate.pinchGPoints[1].currentPos );
+                        delegate.lastPinchCenter = delegate.currentPinchCenter = getCenterPoint( delegate.pinchGPoints[0].currentPos, delegate.pinchGPoints[1].currentPos );
                     }
                 }
             }
-            else if ( curPointer.type === 'pen' ) {
+            else if ( curGPoint.type === 'pen' ) {
                 if ( !delegate.penPointCount ) {
-                    delegate.penPoints[ curPointer.id ] = curPointer;
+                    delegate.penPoints[ curGPoint.id ] = curGPoint;
                     delegate.penPointCount++;
                     dispatchPress = true;
                 }
@@ -4674,8 +4804,9 @@ $.EventSource.prototype = /** @lends OpenSeadragon.EventSource.prototype */{
                 propagate = tracker.pressHandler(
                     {
                         eventSource:          tracker,
-                        position:             getPointRelative( curPointer.startPos, tracker.element ),
-                        isTouchEvent:         curPointer.type === 'touch',
+                        pointerType:          curGPoint.type,
+                        position:             getPointRelative( curGPoint.startPos, tracker.element ),
+                        isTouchEvent:         curGPoint.type === 'touch',
                         originalEvent:        event,
                         preventDefaultAction: false,
                         userData:             tracker.userData
@@ -4693,37 +4824,37 @@ $.EventSource.prototype = /** @lends OpenSeadragon.EventSource.prototype */{
      * @private
      * @inner
      */
-    function updatePointersOver( tracker, event, pointers ) {
+    function updatePointersOver( tracker, event, gPoints ) {
         var delegate = THIS[ tracker.hash ],
             i,
-            pointerCount = pointers.length,
-            curPointer,
-            updatePointer,
+            gPointCount = gPoints.length,
+            curGPoint,
+            updateGPoint,
             insideElementPressed,
             propagate;
 
-        for ( i = 0; i < pointerCount; i++ ) {
-            curPointer = pointers[ i ];
-            if ( curPointer.type === 'mouse' ) {
-                updatePointer = delegate.mousePoints[ curPointer.id ] || null;
+        for ( i = 0; i < gPointCount; i++ ) {
+            curGPoint = gPoints[ i ];
+            if ( curGPoint.type === 'mouse' ) {
+                updateGPoint = delegate.mousePoints[ curGPoint.id ] || null;
             }
-            else if ( curPointer.type === 'touch' ) {
-                updatePointer = delegate.touchPoints[ curPointer.id ] || null;
+            else if ( curGPoint.type === 'touch' ) {
+                updateGPoint = delegate.touchPoints[ curGPoint.id ] || null;
             }
-            else if ( curPointer.type === 'pen' ) {
-                updatePointer = delegate.penPoints[ curPointer.id ] || null;
+            else if ( curGPoint.type === 'pen' ) {
+                updateGPoint = delegate.penPoints[ curGPoint.id ] || null;
             }
             else {
-                updatePointer = null;
+                updateGPoint = null;
             }
 
-            if ( updatePointer ) {
-                updatePointer.insideElement = true;
-                updatePointer.lastPos = updatePointer.currentPos;
-                updatePointer.lastTime = updatePointer.currentTime;
-                updatePointer.currentPos = curPointer.currentPos;
-                updatePointer.currentTime = curPointer.currentTime;
-                insideElementPressed = updatePointer.insideElementPressed;
+            if ( updateGPoint ) {
+                updateGPoint.insideElement = true;
+                updateGPoint.lastPos = updateGPoint.currentPos;
+                updateGPoint.lastTime = updateGPoint.currentTime;
+                updateGPoint.currentPos = curGPoint.currentPos;
+                updateGPoint.currentTime = curGPoint.currentTime;
+                insideElementPressed = updateGPoint.insideElementPressed;
             }
             else {
                 insideElementPressed = false;
@@ -4733,10 +4864,11 @@ $.EventSource.prototype = /** @lends OpenSeadragon.EventSource.prototype */{
                 propagate = tracker.enterHandler(
                     {
                         eventSource:          tracker,
-                        position:             getPointRelative( curPointer.currentPos, tracker.element ),
+                        pointerType:          curGPoint.type,
+                        position:             getPointRelative( curGPoint.currentPos, tracker.element ),
                         insideElementPressed: insideElementPressed,
                         buttonDownAny:        IS_BUTTON_DOWN,
-                        isTouchEvent:         curPointer.type === 'touch',
+                        isTouchEvent:         curGPoint.type === 'touch',
                         originalEvent:        event,
                         preventDefaultAction: false,
                         userData:             tracker.userData
@@ -4754,37 +4886,37 @@ $.EventSource.prototype = /** @lends OpenSeadragon.EventSource.prototype */{
      * @private
      * @inner
      */
-    function updatePointersOut( tracker, event, pointers ) {
+    function updatePointersOut( tracker, event, gPoints ) {
         var delegate = THIS[ tracker.hash ],
             i,
-            pointerCount = pointers.length,
-            curPointer,
-            updatePointer,
+            gPointCount = gPoints.length,
+            curGPoint,
+            updateGPoint,
             insideElementPressed,
             propagate;
 
-        for ( i = 0; i < pointerCount; i++ ) {
-            curPointer = pointers[ i ];
-            if ( curPointer.type === 'mouse' ) {
-                updatePointer = delegate.mousePoints[ curPointer.id ] || null;
+        for ( i = 0; i < gPointCount; i++ ) {
+            curGPoint = gPoints[ i ];
+            if ( curGPoint.type === 'mouse' ) {
+                updateGPoint = delegate.mousePoints[ curGPoint.id ] || null;
             }
-            else if ( curPointer.type === 'touch' ) {
-                updatePointer = delegate.touchPoints[ curPointer.id ] || null;
+            else if ( curGPoint.type === 'touch' ) {
+                updateGPoint = delegate.touchPoints[ curGPoint.id ] || null;
             }
-            else if ( curPointer.type === 'pen' ) {
-                updatePointer = delegate.penPoints[ curPointer.id ] || null;
+            else if ( curGPoint.type === 'pen' ) {
+                updateGPoint = delegate.penPoints[ curGPoint.id ] || null;
             }
             else {
-                updatePointer = null;
+                updateGPoint = null;
             }
 
-            if ( updatePointer ) {
-                updatePointer.insideElement = false;
-                updatePointer.lastPos = updatePointer.currentPos;
-                updatePointer.lastTime = updatePointer.currentTime;
-                updatePointer.currentPos = curPointer.currentPos;
-                updatePointer.currentTime = curPointer.currentTime;
-                insideElementPressed = updatePointer.insideElementPressed;
+            if ( updateGPoint ) {
+                updateGPoint.insideElement = false;
+                updateGPoint.lastPos = updateGPoint.currentPos;
+                updateGPoint.lastTime = updateGPoint.currentTime;
+                updateGPoint.currentPos = curGPoint.currentPos;
+                updateGPoint.currentTime = curGPoint.currentTime;
+                insideElementPressed = updateGPoint.insideElementPressed;
             }
             else {
                 insideElementPressed = false;
@@ -4794,10 +4926,11 @@ $.EventSource.prototype = /** @lends OpenSeadragon.EventSource.prototype */{
                 propagate = tracker.exitHandler(
                     {
                         eventSource:          tracker,
-                        position:             getPointRelative( curPointer.currentPos, tracker.element ),
+                        pointerType:          curGPoint.type,
+                        position:             getPointRelative( curGPoint.currentPos, tracker.element ),
                         insideElementPressed: insideElementPressed,
                         buttonDownAny:        IS_BUTTON_DOWN,
-                        isTouchEvent:         curPointer.type === 'touch',
+                        isTouchEvent:         curGPoint.type === 'touch',
                         originalEvent:        event,
                         preventDefaultAction: false,
                         userData:             tracker.userData
@@ -4816,27 +4949,27 @@ $.EventSource.prototype = /** @lends OpenSeadragon.EventSource.prototype */{
      * @private
      * @inner
      */
-    function updatePointers( tracker, event, pointers ) {
+    function updatePointers( tracker, event, gPoints ) {
         // Pointer(s) changed coordinates, button state, pressure, tilt, or contact geometry (e.g. width and height)
         var delegate = THIS[ tracker.hash ],
             i,
-            pointerCount = pointers.length,
-            curPointer,
-            updatePointer,
+            gPointCount = gPoints.length,
+            curGPoint,
+            updateGPoint,
             points,
             pointCount,
             delta,
             propagate;
 
-        if ( pointers[ 0 ].type === 'mouse' ) {
+        if ( gPoints[ 0 ].type === 'mouse' ) {
             points = delegate.mousePoints;
             pointCount = delegate.mousePointCount;
         }
-        else if ( pointers[ 0 ].type === 'touch' ) {
+        else if ( gPoints[ 0 ].type === 'touch' ) {
             points = delegate.touchPoints;
             pointCount = delegate.touchPointCount;
         }
-        else if ( pointers[ 0 ].type === 'pen' ) {
+        else if ( gPoints[ 0 ].type === 'pen' ) {
             points = delegate.penPoints;
             pointCount = delegate.penPointCount;
         }
@@ -4844,26 +4977,27 @@ $.EventSource.prototype = /** @lends OpenSeadragon.EventSource.prototype */{
             points = null;
         }
 
-        for ( i = 0; i < pointerCount; i++ ) {
-            curPointer = pointers[ i ];
-            updatePointer = points ? ( points[ curPointer.id ] || null ) : null;
+        for ( i = 0; i < gPointCount; i++ ) {
+            curGPoint = gPoints[ i ];
+            updateGPoint = points ? ( points[ curGPoint.id ] || null ) : null;
 
-            if ( updatePointer ) {
-                updatePointer.lastPos = updatePointer.currentPos;
-                updatePointer.lastTime = updatePointer.currentTime;
-                updatePointer.currentPos = curPointer.currentPos;
-                updatePointer.currentTime = curPointer.currentTime;
+            if ( updateGPoint ) {
+                updateGPoint.lastPos = updateGPoint.currentPos;
+                updateGPoint.lastTime = updateGPoint.currentTime;
+                updateGPoint.currentPos = curGPoint.currentPos;
+                updateGPoint.currentTime = curGPoint.currentTime;
 
                 // Drag Gesture
-                if ( pointCount == 1 && tracker.dragHandler &&  !updatePointer.currentPos.equals( updatePointer.lastPos ) ) {
-                    delta = updatePointer.currentPos.minus( updatePointer.lastPos );
+                if ( pointCount == 1 && tracker.dragHandler &&  !updateGPoint.currentPos.equals( updateGPoint.lastPos ) ) {
+                    delta = updateGPoint.currentPos.minus( updateGPoint.lastPos );
                     propagate = tracker.dragHandler(
                         {
                             eventSource:          tracker,
-                            position:             getPointRelative( updatePointer.currentPos, tracker.element ),
+                            pointerType:          curGPoint.type,
+                            position:             getPointRelative( updateGPoint.currentPos, tracker.element ),
                             delta:                delta,
                             shift:                event.shiftKey,
-                            isTouchEvent:         curPointer.type === 'touch',
+                            isTouchEvent:         curGPoint.type === 'touch',
                             originalEvent:        event,
                             preventDefaultAction: false,
                             userData:             tracker.userData
@@ -4879,8 +5013,9 @@ $.EventSource.prototype = /** @lends OpenSeadragon.EventSource.prototype */{
                 propagate = tracker.moveHandler(
                     {
                         eventSource:          tracker,
-                        position:             getPointRelative( curPointer.currentPos, tracker.element ),
-                        isTouchEvent:         curPointer.type === 'touch',
+                        pointerType:          curGPoint.type,
+                        position:             getPointRelative( curGPoint.currentPos, tracker.element ),
+                        isTouchEvent:         curGPoint.type === 'touch',
                         originalEvent:        event,
                         preventDefaultAction: false,
                         userData:             tracker.userData
@@ -4899,21 +5034,21 @@ $.EventSource.prototype = /** @lends OpenSeadragon.EventSource.prototype */{
         }
 
         // Pinch Gesture
-        if ( pointers[ 0 ].type === 'touch' && delegate.touchPointCount == 2 && tracker.pinchHandler ) {
+        if ( gPoints[ 0 ].type === 'touch' && delegate.touchPointCount == 2 && tracker.pinchHandler ) {
             //gesturePoints = [];
             //for ( var p in delegate.touchPoints ) {
             //    gesturePoints.push( delegate.touchPoints[ p ] );
             //}
-            delta = delegate.pinchGesturePoints[0].currentPos.distanceTo( delegate.pinchGesturePoints[1].currentPos );
+            delta = delegate.pinchGPoints[0].currentPos.distanceTo( delegate.pinchGPoints[1].currentPos );
             if ( delta != delegate.currentPinchDist ) {
                 delegate.lastPinchDist = delegate.currentPinchDist;
                 delegate.currentPinchDist = delta;
                 delegate.lastPinchCenter = delegate.currentPinchCenter;
-                delegate.currentPinchCenter = getCenterPoint( delegate.pinchGesturePoints[0].currentPos, delegate.pinchGesturePoints[1].currentPos );
+                delegate.currentPinchCenter = getCenterPoint( delegate.pinchGPoints[0].currentPos, delegate.pinchGPoints[1].currentPos );
                 propagate = tracker.pinchHandler(
                     {
                         eventSource:          tracker,
-                        gesturePoints:        delegate.pinchGesturePoints,
+                        gesturePoints:        delegate.pinchGPoints,
                         lastCenter:           getPointRelative( delegate.lastPinchCenter, tracker.element ),
                         center:               getPointRelative( delegate.currentPinchCenter, tracker.element ),
                         lastDistance:         delegate.lastPinchDist,
@@ -4935,7 +5070,7 @@ $.EventSource.prototype = /** @lends OpenSeadragon.EventSource.prototype */{
      * @private
      * @inner
      */
-    function removePointers( tracker, event, pointers ) {
+    function removePointers( tracker, event, gPoints ) {
         var delegate = THIS[ tracker.hash ],
             propagate,
             //were we inside the tracked element when we were pressed
@@ -4947,59 +5082,59 @@ $.EventSource.prototype = /** @lends OpenSeadragon.EventSource.prototype */{
             pressTime,
             releasePoint,
             i,
-            pointerCount = pointers.length,
-            curPointer,
-            updatePointer;
+            gPointCount = gPoints.length,
+            curGPoint,
+            updateGPoint;
 
-        for ( i = 0; i < pointerCount; i++ ) {
-            curPointer = pointers[ i ];
+        for ( i = 0; i < gPointCount; i++ ) {
+            curGPoint = gPoints[ i ];
             dispatchRelease = false;
-            if ( curPointer.type === 'mouse' ) {
-                updatePointer = delegate.mousePoints[ curPointer.id ] || null;
-                if ( updatePointer ) {
-                    pressPoint = updatePointer.startPos;
-                    pressTime = updatePointer.startTime;
-                    delete delegate.mousePoints[ curPointer.id ];
+            if ( curGPoint.type === 'mouse' ) {
+                updateGPoint = delegate.mousePoints[ curGPoint.id ] || null;
+                if ( updateGPoint ) {
+                    pressPoint = updateGPoint.startPos;
+                    pressTime = updateGPoint.startTime;
+                    delete delegate.mousePoints[ curGPoint.id ];
                     delegate.mousePointCount--;
                     if ( !delegate.mousePointCount ) {
                         dispatchRelease = true;
-                        releasePoint = curPointer.currentPos;
+                        releasePoint = curGPoint.currentPos;
                     }
                 }
             }
-            else if ( curPointer.type === 'touch' ) {
-                updatePointer = delegate.touchPoints[ curPointer.id ] || null;
-                if ( updatePointer ) {
-                    pressPoint = updatePointer.startPos;
-                    pressTime = updatePointer.startTime;
-                    delete delegate.touchPoints[ curPointer.id ];
+            else if ( curGPoint.type === 'touch' ) {
+                updateGPoint = delegate.touchPoints[ curGPoint.id ] || null;
+                if ( updateGPoint ) {
+                    pressPoint = updateGPoint.startPos;
+                    pressTime = updateGPoint.startTime;
+                    delete delegate.touchPoints[ curGPoint.id ];
                     delegate.touchPointCount--;
                     if ( !delegate.touchPointCount ) {
                         dispatchRelease = true;
-                        releasePoint = curPointer.currentPos;
+                        releasePoint = curGPoint.currentPos;
                     }
                 }
             }
-            else if ( curPointer.type === 'pen' ) {
-                updatePointer = delegate.penPoints[ curPointer.id ] || null;
-                if ( updatePointer ) {
-                    pressPoint = updatePointer.startPos;
-                    pressTime = updatePointer.startTime;
-                    delete delegate.penPoints[ curPointer.id ];
+            else if ( curGPoint.type === 'pen' ) {
+                updateGPoint = delegate.penPoints[ curGPoint.id ] || null;
+                if ( updateGPoint ) {
+                    pressPoint = updateGPoint.startPos;
+                    pressTime = updateGPoint.startTime;
+                    delete delegate.penPoints[ curGPoint.id ];
                     delegate.penPointCount--;
                     if ( !delegate.penPointCount ) {
                         dispatchRelease = true;
-                        releasePoint = curPointer.currentPos;
+                        releasePoint = curGPoint.currentPos;
                     }
                 }
             }
             else {
-                updatePointer = null;
+                updateGPoint = null;
             }
 
             if ( dispatchRelease ) {
-                if ( updatePointer ) {
-                    insideElementPressed = updatePointer.insideElementPressed;
+                if ( updateGPoint ) {
+                    insideElementPressed = updateGPoint.insideElementPressed;
                     insideElementReleased = $.pointInElement( tracker.element, releasePoint );
                 }
                 else {
@@ -5011,10 +5146,11 @@ $.EventSource.prototype = /** @lends OpenSeadragon.EventSource.prototype */{
                     propagate = tracker.releaseHandler(
                         {
                             eventSource:           tracker,
+                            pointerType:           curGPoint.type,
                             position:              getPointRelative( releasePoint, tracker.element ),
                             insideElementPressed:  insideElementPressed,
                             insideElementReleased: insideElementReleased,
-                            isTouchEvent:          curPointer.type === 'touch',
+                            isTouchEvent:          curGPoint.type === 'touch',
                             originalEvent:         event,
                             preventDefaultAction:  false,
                             userData:              tracker.userData
@@ -5027,18 +5163,19 @@ $.EventSource.prototype = /** @lends OpenSeadragon.EventSource.prototype */{
 
                 // Click Gesture
                 if ( insideElementPressed && insideElementReleased && tracker.clickHandler ) {
-                    var time = curPointer.currentTime - pressTime,
-                        distance = pressPoint.distanceTo( curPointer.currentPos ),
+                    var time = curGPoint.currentTime - pressTime,
+                        distance = pressPoint.distanceTo( curGPoint.currentPos ),
                         quick = time <= tracker.clickTimeThreshold &&
                                    distance <= tracker.clickDistThreshold;
 
                     propagate = tracker.clickHandler(
                         {
                             eventSource:          tracker,
-                            position:             getPointRelative( curPointer.currentPos, tracker.element ),
+                            pointerType:          curGPoint.type,
+                            position:             getPointRelative( curGPoint.currentPos, tracker.element ),
                             quick:                quick,
                             shift:                event.shiftKey,
-                            isTouchEvent:         curPointer.type === 'touch',
+                            isTouchEvent:         curGPoint.type === 'touch',
                             originalEvent:        event,
                             preventDefaultAction: false,
                             userData:             tracker.userData
@@ -5057,29 +5194,29 @@ $.EventSource.prototype = /** @lends OpenSeadragon.EventSource.prototype */{
      * @private
      * @inner
      */
-    function cancelPointers( tracker, event, pointers ) {
+    function cancelPointers( tracker, event, gPoints ) {
         var delegate = THIS[ tracker.hash ],
             i,
-            pointerCount = pointers.length,
-            curPointer;
+            gPointCount = gPoints.length,
+            curGPoint;
 
-        for ( i = 0; i < pointerCount; i++ ) {
-            curPointer = pointers[ i ];
-            if ( curPointer.type === 'mouse' ) {
-                if ( delegate.mousePoints[ curPointer.id ] ) {
-                    delete delegate.mousePoints[ curPointer.id ];
+        for ( i = 0; i < gPointCount; i++ ) {
+            curGPoint = gPoints[ i ];
+            if ( curGPoint.type === 'mouse' ) {
+                if ( delegate.mousePoints[ curGPoint.id ] ) {
+                    delete delegate.mousePoints[ curGPoint.id ];
                     delegate.mousePointCount--;
                 }
             }
-            else if ( curPointer.type === 'touch' ) {
-                if ( delegate.touchPoints[ curPointer.id ] ) {
-                    delete delegate.touchPoints[ curPointer.id ];
+            else if ( curGPoint.type === 'touch' ) {
+                if ( delegate.touchPoints[ curGPoint.id ] ) {
+                    delete delegate.touchPoints[ curGPoint.id ];
                     delegate.touchPointCount--;
                 }
             }
-            else if ( curPointer.type === 'pen' ) {
-                if ( delegate.penPoints[ curPointer.id ] ) {
-                    delete delegate.penPoints[ curPointer.id ];
+            else if ( curGPoint.type === 'pen' ) {
+                if ( delegate.penPoints[ curGPoint.id ] ) {
+                    delete delegate.penPoints[ curGPoint.id ];
                     delegate.penPointCount--;
                 }
             }
@@ -5815,8 +5952,7 @@ $.Viewer = function( options ) {
             xmlPath:            args.length > 1 ? args[ 1 ] : undefined,
             prefixUrl:          args.length > 2 ? args[ 2 ] : undefined,
             controls:           args.length > 3 ? args[ 3 ] : undefined,
-            overlays:           args.length > 4 ? args[ 4 ] : undefined,
-            overlayControls:    args.length > 5 ? args[ 5 ] : undefined
+            overlays:           args.length > 4 ? args[ 4 ] : undefined
         };
     }
 
@@ -5868,9 +6004,10 @@ $.Viewer = function( options ) {
          */
         canvas:         null,
 
-        //TODO: not sure how to best describe these
-        overlays:       [],
-        overlayControls:[],
+        // Overlays list. An overlay allows to add html on top of the viewer.
+        overlays:           [],
+        // Container inside the canvas where overlays are drawn.
+        overlaysContainer:  null,
 
         //private state properties
         previousBody:   [],
@@ -5891,8 +6028,10 @@ $.Viewer = function( options ) {
          * @member {OpenSeadragon.Drawer} drawer
          * @memberof OpenSeadragon.Viewer#
          */
-        drawer:         null,
-        drawers:        [],
+        drawer:             null,
+        drawers:            [],
+        // Container inside the canvas where drawers (layers) are drawn.
+        drawersContainer:   null,
         /**
          * Handles coordinate-related functionality - zoom, pan, rotation, etc. Created for each TileSource opened.
          * @member {OpenSeadragon.Viewport} viewport
@@ -5952,6 +6091,7 @@ $.Viewer = function( options ) {
     };
 
     this._updateRequestId = null;
+    this.currentOverlays = [];
 
     //Inherit some behaviors and properties
     $.EventSource.call( this );
@@ -6002,6 +6142,8 @@ $.Viewer = function( options ) {
     this.element              = this.element || document.getElementById( this.id );
     this.canvas               = $.makeNeutralElement( "div" );
     this.keyboardCommandArea  = $.makeNeutralElement( "textarea" );
+    this.drawersContainer     = $.makeNeutralElement( "div" );
+    this.overlaysContainer    = $.makeNeutralElement( "div" );
 
     this.canvas.className = "openseadragon-canvas";
     (function( style ){
@@ -6046,6 +6188,8 @@ $.Viewer = function( options ) {
     this.container.insertBefore( this.canvas, this.container.firstChild );
     this.container.insertBefore( this.keyboardCommandArea, this.container.firstChild );
     this.element.appendChild( this.container );
+    this.canvas.appendChild( this.drawersContainer );
+    this.canvas.appendChild( this.overlaysContainer );
 
     //Used for toggling between fullscreen and default container size
     //TODO: these can be closure private and shared across Viewer
@@ -6226,81 +6370,26 @@ $.extend( $.Viewer.prototype, $.EventSource.prototype, $.ControlDock.prototype, 
      * @fires OpenSeadragon.Viewer.event:open-failed
      */
     open: function ( tileSource ) {
-        var _this = this,
-            customTileSource,
-            readySource,
-            $TileSource,
-            options;
+        var _this = this;
 
         _this._hideMessage();
 
-        //allow plain xml strings or json strings to be parsed here
-        if( $.type( tileSource ) == 'string' ){
-            if( tileSource.match(/\s*<.*/) ){
-                tileSource = $.parseXml( tileSource );
-            }else if( tileSource.match(/\s*[\{\[].*/) ){
-                /*jshint evil:true*/
-                tileSource = eval( '('+tileSource+')' );
-            }
-        }
-
-        setTimeout(function(){
-            if ( $.type( tileSource ) == 'string') {
-                //If its still a string it means it must be a url at this point
-                tileSource = new $.TileSource( tileSource, function( event ){
-                    openTileSource( _this, event.tileSource );
-                });
-                tileSource.addHandler( 'open-failed', function ( event ) {
-                    /**
-                     * Raised when an error occurs loading a TileSource.
-                     *
-                     * @event open-failed
-                     * @memberof OpenSeadragon.Viewer
-                     * @type {object}
-                     * @property {OpenSeadragon.Viewer} eventSource - A reference to the Viewer which raised the event.
-                     * @property {String} message
-                     * @property {String} source
-                     * @property {?Object} userData - Arbitrary subscriber-defined object.
-                     */
-                    _this.raiseEvent( 'open-failed', event );
-                });
-
-            } else if ( $.isPlainObject( tileSource ) || tileSource.nodeType ){
-                if( $.isFunction( tileSource.getTileUrl ) ){
-                    //Custom tile source
-                    customTileSource = new $.TileSource(tileSource);
-                    customTileSource.getTileUrl = tileSource.getTileUrl;
-                    openTileSource( _this, customTileSource );
-                } else {
-                    //inline configuration
-                    $TileSource = $.TileSource.determineType( _this, tileSource );
-                    if ( !$TileSource ) {
-                        /***
-                         * Raised when an error occurs loading a TileSource.
-                         *
-                         * @event open-failed
-                         * @memberof OpenSeadragon.Viewer
-                         * @type {object}
-                         * @property {OpenSeadragon.Viewer} eventSource - A reference to the Viewer which raised the event.
-                         * @property {String} message
-                         * @property {String} source
-                         * @property {?Object} userData - Arbitrary subscriber-defined object.
-                         */
-                        _this.raiseEvent( 'open-failed', {
-                            message: "Unable to load TileSource",
-                            source: tileSource
-                        });
-                        return;
-                    }
-                    options = $TileSource.prototype.configure.apply( _this, [ tileSource ]);
-                    readySource = new $TileSource( options );
-                    openTileSource( _this, readySource );
-                }
-            } else {
-                //can assume it's already a tile source implementation
-                openTileSource( _this, tileSource );
-            }
-        }, 1);
+        getTileSourceImplementation( _this, tileSource, function( tileSource ) {
+            openTileSource( _this, tileSource );
+        }, function( event ) {
+            /**
+             * Raised when an error occurs loading a TileSource.
+             *
+             * @event open-failed
+             * @memberof OpenSeadragon.Viewer
+             * @type {object}
+             * @property {OpenSeadragon.Viewer} eventSource - A reference to the Viewer which raised the event.
+             * @property {String} message
+             * @property {String} source
+             * @property {?Object} userData - Arbitrary subscriber-defined object.
+             */
+            _this.raiseEvent( 'open-failed', event );
+        });
 
         return this;
     },
@@ -6321,18 +6410,16 @@ $.extend( $.Viewer.prototype, $.EventSource.prototype, $.ControlDock.prototype, 
             this.navigator.close();
         }
 
-        if ( this.drawer ) {
-            this.drawer.clearOverlays();
-        }
+        this.clearOverlays();
+        this.drawersContainer.innerHTML = "";
+        this.overlaysContainer.innerHTML = "";
 
         this.source     = null;
         this.drawer     = null;
+        this.drawers    = [];
 
         this.viewport   = this.preserveViewport ? this.viewport : null;
-        //this.profiler   = null;
-        if (this.canvas){
-            this.canvas.innerHTML = "";
-        }
+
 
         VIEWERS[ this.hash ] = null;
         delete VIEWERS[ this.hash ];
@@ -6801,6 +6888,257 @@ $.extend( $.Viewer.prototype, $.EventSource.prototype, $.ControlDock.prototype, 
         return this;
     },
 
+    /**
+     * Add a layer.
+     * options.tileSource can be anything that {@link OpenSeadragon.Viewer#open}
+     *  supports except arrays of images as layers cannot be sequences.
+     * @function
+     * @param {Object} options
+     * @param {String|Object|Function} options.tileSource The TileSource of the layer.
+     * @param {Number} [options.opacity=1] The opacity of the layer.
+     * @param {Number} [options.level] The level of the layer. Added on top of
+     * all other layers if not specified.
+     * @returns {OpenSeadragon.Viewer} Chainable.
+     * @fires OpenSeadragon.Viewer.event:add-layer
+     * @fires OpenSeadragon.Viewer.event:add-layer-failed
+     */
+    addLayer: function( options ) {
+        var _this = this,
+            tileSource = options.tileSource;
+
+        if ( !this.isOpen() ) {
+            throw new Error( "An image must be loaded before adding layers." );
+        }
+        if ( !tileSource ) {
+            throw new Error( "No tile source provided as new layer." );
+        }
+        if ( this.collectionMode ) {
+            throw new Error( "Layers not supported in collection mode." );
+        }
+
+        function raiseAddLayerFailed( event ) {
+             /**
+             * Raised when an error occurs while adding a layer.
+             * @event add-layer-failed
+             * @memberOf OpenSeadragon.Viewer
+             * @type {object}
+             * @property {OpenSeadragon.Viewer} eventSource - A reference to the Viewer which raised the event.
+             * @property {String} message
+             * @property {String} source
+             * @property {Object} options The options passed to the addLayer method.
+             * @property {?Object} userData - Arbitrary subscriber-defined object.
+             */
+            _this.raiseEvent( 'add-layer-failed', event );
+        }
+
+        getTileSourceImplementation( this, tileSource, function( tileSource ) {
+
+            if ( tileSource instanceof Array ) {
+                raiseAddLayerFailed({
+                    message: "Sequences can not be added as layers.",
+                    source: tileSource,
+                    options: options
+                });
+                return;
+            }
+
+            for ( var i = 0; i < _this.drawers.length; i++ ) {
+                var otherAspectRatio = _this.drawers[ i ].source.aspectRatio;
+                var diff = otherAspectRatio - tileSource.aspectRatio;
+                if ( Math.abs( diff ) > _this.layersAspectRatioEpsilon ) {
+                    raiseAddLayerFailed({
+                        message: "Aspect ratio mismatch with layer " + i + ".",
+                        source: tileSource,
+                        options: options
+                    });
+                    return;
+                }
+            }
+
+            var drawer = new $.Drawer({
+                viewer: _this,
+                source: tileSource,
+                viewport: _this.viewport,
+                element: _this.drawersContainer,
+                opacity: options.opacity !== undefined ?
+                    options.opacity : _this.opacity,
+                maxImageCacheCount: _this.maxImageCacheCount,
+                imageLoaderLimit: _this.imageLoaderLimit,
+                minZoomImageRatio: _this.minZoomImageRatio,
+                wrapHorizontal: _this.wrapHorizontal,
+                wrapVertical: _this.wrapVertical,
+                immediateRender: _this.immediateRender,
+                blendTime: _this.blendTime,
+                alwaysBlend: _this.alwaysBlend,
+                minPixelRatio: _this.minPixelRatio,
+                timeout: _this.timeout,
+                debugMode: _this.debugMode,
+                debugGridColor: _this.debugGridColor
+            });
+            _this.drawers.push( drawer );
+            if ( options.level !== undefined ) {
+                _this.setLayerLevel( drawer, options.level );
+            }
+            THIS[ _this.hash ].forceRedraw = true;
+            /**
+             * Raised when a layer is successfully added.
+             * @event add-layer
+             * @memberOf OpenSeadragon.Viewer
+             * @type {object}
+             * @property {OpenSeadragon.Viewer} eventSource - A reference to the Viewer which raised the event.
+             * @property {Object} options The options passed to the addLayer method.
+             * @property {OpenSeadragon.Drawer} drawer The layer's underlying drawer.
+             * @property {?Object} userData - Arbitrary subscriber-defined object.
+             */
+            _this.raiseEvent( 'add-layer', {
+                options: options,
+                drawer: drawer
+            });
+        }, function( event ) {
+            event.options = options;
+            raiseAddLayerFailed(event);
+        } );
+
+        return this;
+    },
+
+    /**
+     * Get the layer at the specified level.
+     * @param {Number} level The layer to retrieve level.
+     * @returns {OpenSeadragon.Drawer} The layer at the specified level.
+     */
+    getLayerAtLevel: function( level ) {
+        if ( level >= this.drawers.length ) {
+            throw new Error( "Level bigger than number of layers." );
+        }
+        return this.drawers[ level ];
+    },
+
+    /**
+     * Get the level of the layer associated with the given drawer or -1 if not
+     * present.
+     * @param {OpenSeadragon.Drawer} drawer The underlying drawer of the layer.
+     * @returns {Number} The level of the layer or -1 if not present.
+     */
+    getLevelOfLayer: function( drawer ) {
+        return $.indexOf( this.drawers, drawer );
+    },
+
+    /**
+     * Get the number of layers used.
+     * @returns {Number} The number of layers used.
+     */
+    getLayersCount: function() {
+        return this.drawers.length;
+    },
+
+    /**
+     * Change the level of a layer so that it appears over or under others.
+     * @param {OpenSeadragon.Drawer} drawer The underlying drawer of the changing
+     * level layer.
+     * @param {Number} level The new level
+     * @returns {OpenSeadragon.Viewer} Chainable.
+     * @fires OpenSeadragon.Viewer.event:layer-level-changed
+     */
+    setLayerLevel: function( drawer, level ) {
+        var oldLevel = this.getLevelOfLayer( drawer );
+
+        if ( level >= this.drawers.length ) {
+            throw new Error( "Level bigger than number of layers." );
+        }
+        if ( level === oldLevel || oldLevel === -1 ) {
+            return this;
+        }
+        if ( level === 0 || oldLevel === 0 ) {
+            if ( THIS[ this.hash ].sequenced ) {
+                throw new Error( "Cannot reassign base level when in sequence mode." );
+            }
+            // We need to re-assign the base drawer and the source
+            this.drawer = level === 0 ? drawer : this.getLayerAtLevel( level );
+            this.source = this.drawer.source;
+        }
+        this.drawers.splice( oldLevel, 1 );
+        this.drawers.splice( level, 0, drawer );
+        this.drawersContainer.removeChild( drawer.canvas );
+        if ( level === 0 ) {
+            var nextLevelCanvas = this.drawers[ 1 ].canvas;
+            nextLevelCanvas.parentNode.insertBefore( drawer.canvas,
+                nextLevelCanvas );
+        } else {
+            // Insert right after layer at level - 1
+            var prevLevelCanvas = this.drawers[level - 1].canvas;
+            prevLevelCanvas.parentNode.insertBefore( drawer.canvas,
+                prevLevelCanvas.nextSibling );
+        }
+
+        /**
+         * Raised when the order of the layers has been changed.
+         * @event layer-level-changed
+         * @memberOf OpenSeadragon.Viewer
+         * @type {object}
+         * @property {OpenSeadragon.Viewer} eventSource - A reference to the Viewer which raised the event.
+         * @property {OpenSeadragon.Drawer} drawer - The drawer which level has
+         * been changed
+         * @property {Number} previousLevel - The previous level of the drawer
+         * @property {Number} newLevel - The new level of the drawer
+         * @property {?Object} userData - Arbitrary subscriber-defined object.
+         */
+        this.raiseEvent( 'layer-level-changed', {
+            drawer: drawer,
+            previousLevel: oldLevel,
+            newLevel: level
+        } );
+
+        return this;
+    },
+
+    /**
+     * Remove a layer. If there is only one layer, close the viewer.
+     * @function
+     * @param {OpenSeadragon.Drawer} drawer The underlying drawer of the layer 
+     * to remove
+     * @returns {OpenSeadragon.Viewer} Chainable.
+     * @fires OpenSeadragon.Viewer.event:remove-layer
+     */
+    removeLayer: function( drawer ) {
+        var index = this.drawers.indexOf( drawer );
+        if ( index === -1 ) {
+            return this;
+        }
+        if ( index === 0 ) {
+            if ( THIS[ this.hash ].sequenced ) {
+                throw new Error( "Cannot remove base layer when in sequence mode." );
+            }
+            if ( this.drawers.length === 1 ) {
+                this.close();
+                return this;
+            }
+            this.drawer = this.drawers[ 1 ];
+        }
+
+        this.drawers.splice( index, 1 );
+        this.drawersContainer.removeChild( drawer.canvas );
+        /**
+         * Raised when a layer is removed.
+         * @event remove-layer
+         * @memberOf OpenSeadragon.Viewer
+         * @type {object}
+         * @property {OpenSeadragon.Viewer} eventSource - A reference to the Viewer which raised the event.
+         * @property {OpenSeadragon.Drawer} drawer The layer's underlying drawer.
+         * @property {?Object} userData - Arbitrary subscriber-defined object.
+         */
+        this.raiseEvent( 'remove-layer', { drawer: drawer } );
+        return this;
+    },
+
+    /**
+     * Force the viewer to redraw its drawers.
+     * @returns {OpenSeadragon.Viewer} Chainable.
+     */
+    forceRedraw: function() {
+        THIS[ this.hash ].forceRedraw = true;
+        return this;
+    },
 
     /**
      * @function
@@ -7083,6 +7421,173 @@ $.extend( $.Viewer.prototype, $.EventSource.prototype, $.ControlDock.prototype, 
         return this;
     },
 
+   /**
+     * Adds an html element as an overlay to the current viewport.  Useful for
+     * highlighting words or areas of interest on an image or other zoomable
+     * interface. The overlays added via this method are removed when the viewport
+     * is closed which include when changing page.
+     * @method
+     * @param {Element|String|Object} element - A reference to an element or an id for
+     *      the element which will overlayed. Or an Object specifying the configuration for the overlay
+     * @param {OpenSeadragon.Point|OpenSeadragon.Rect} location - The point or
+     *      rectangle which will be overlayed.
+     * @param {OpenSeadragon.OverlayPlacement} placement - The position of the
+     *      viewport which the location coordinates will be treated as relative
+     *      to.
+     * @param {function} onDraw - If supplied the callback is called when the overlay
+     *      needs to be drawn. It it the responsibility of the callback to do any drawing/positioning.
+     *      It is passed position, size and element.
+     * @return {OpenSeadragon.Viewer} Chainable.
+     * @fires OpenSeadragon.Viewer.event:add-overlay
+     */
+    addOverlay: function( element, location, placement, onDraw ) {
+        var options;
+        if( $.isPlainObject( element ) ){
+            options = element;
+        } else {
+            options = {
+                element: element,
+                location: location,
+                placement: placement,
+                onDraw: onDraw
+            };
+        }
+
+        element = $.getElement( options.element );
+
+        if ( getOverlayIndex( this.currentOverlays, element ) >= 0 ) {
+            // they're trying to add a duplicate overlay
+            return this;
+        }
+        this.currentOverlays.push( getOverlayObject( this, options ) );
+        THIS[ this.hash ].forceRedraw = true;
+        /**
+         * Raised when an overlay is added to the viewer (see {@link OpenSeadragon.Viewer#addOverlay}).
+         *
+         * @event add-overlay
+         * @memberof OpenSeadragon.Viewer
+         * @type {object}
+         * @property {OpenSeadragon.Viewer} eventSource - A reference to the Viewer which raised the event.
+         * @property {Element} element - The overlay element.
+         * @property {OpenSeadragon.Point|OpenSeadragon.Rect} location
+         * @property {OpenSeadragon.OverlayPlacement} placement
+         * @property {?Object} userData - Arbitrary subscriber-defined object.
+         */
+        this.raiseEvent( 'add-overlay', {
+            element: element,
+            location: options.location,
+            placement: options.placement
+        });
+        return this;
+    },
+
+    /**
+     * Updates the overlay represented by the reference to the element or
+     * element id moving it to the new location, relative to the new placement.
+     * @method
+     * @param {OpenSeadragon.Point|OpenSeadragon.Rect} location - The point or
+     *      rectangle which will be overlayed.
+     * @param {OpenSeadragon.OverlayPlacement} placement - The position of the
+     *      viewport which the location coordinates will be treated as relative
+     *      to.
+     * @return {OpenSeadragon.Viewer} Chainable.
+     * @fires OpenSeadragon.Viewer.event:update-overlay
+     */
+    updateOverlay: function( element, location, placement ) {
+        var i;
+
+        element = $.getElement( element );
+        i = getOverlayIndex( this.currentOverlays, element );
+
+        if ( i >= 0 ) {
+            this.currentOverlays[ i ].update( location, placement );
+            THIS[ this.hash ].forceRedraw = true;
+            /**
+             * Raised when an overlay's location or placement changes
+             * (see {@link OpenSeadragon.Viewer#updateOverlay}).
+             *
+             * @event update-overlay
+             * @memberof OpenSeadragon.Viewer
+             * @type {object}
+             * @property {OpenSeadragon.Viewer} eventSource - A reference to the
+             * Viewer which raised the event.
+             * @property {Element} element
+             * @property {OpenSeadragon.Point|OpenSeadragon.Rect} location
+             * @property {OpenSeadragon.OverlayPlacement} placement
+             * @property {?Object} userData - Arbitrary subscriber-defined object.
+             */
+            this.raiseEvent( 'update-overlay', {
+                element: element,
+                location: location,
+                placement: placement
+            });
+        }
+        return this;
+    },
+
+    /**
+     * Removes an overlay identified by the reference element or element id
+     * and schedules an update.
+     * @method
+     * @param {Element|String} element - A reference to the element or an
+     *      element id which represent the ovelay content to be removed.
+     * @return {OpenSeadragon.Viewer} Chainable.
+     * @fires OpenSeadragon.Viewer.event:remove-overlay
+     */
+    removeOverlay: function( element ) {
+        var i;
+
+        element = $.getElement( element );
+        i = getOverlayIndex( this.currentOverlays, element );
+
+        if ( i >= 0 ) {
+            this.currentOverlays[ i ].destroy();
+            this.currentOverlays.splice( i, 1 );
+            THIS[ this.hash ].forceRedraw = true;
+            /**
+             * Raised when an overlay is removed from the viewer
+             * (see {@link OpenSeadragon.Viewer#removeOverlay}).
+             *
+             * @event remove-overlay
+             * @memberof OpenSeadragon.Viewer
+             * @type {object}
+             * @property {OpenSeadragon.Viewer} eventSource - A reference to the
+             * Viewer which raised the event.
+             * @property {Element} element - The overlay element.
+             * @property {?Object} userData - Arbitrary subscriber-defined object.
+             */
+            this.raiseEvent( 'remove-overlay', {
+                element: element
+            });
+        }
+        return this;
+    },
+
+    /**
+     * Removes all currently configured Overlays from this Viewer and schedules
+     * an update.
+     * @method
+     * @return {OpenSeadragon.Viewer} Chainable.
+     * @fires OpenSeadragon.Viewer.event:clear-overlay
+     */
+    clearOverlays: function() {
+        while ( this.currentOverlays.length > 0 ) {
+            this.currentOverlays.pop().destroy();
+        }
+        THIS[ this.hash ].forceRedraw = true;
+        /**
+         * Raised when all overlays are removed from the viewer (see {@link OpenSeadragon.Drawer#clearOverlays}).
+         *
+         * @event clear-overlay
+         * @memberof OpenSeadragon.Viewer
+         * @type {object}
+         * @property {OpenSeadragon.Viewer} eventSource - A reference to the Viewer which raised the event.
+         * @property {?Object} userData - Arbitrary subscriber-defined object.
+         */
+        this.raiseEvent( 'clear-overlay', {} );
+        return this;
+    },
+
     /**
      * Updates the sequence buttons.
      * @function OpenSeadragon.Viewer.prototype._updateSequenceButtons
@@ -7167,16 +7672,69 @@ function _getSafeElemSize (oElement) {
  * @function
  * @private
  */
+function getTileSourceImplementation( viewer, tileSource, successCallback,
+    failCallback ) {
+    var _this = viewer;
+
+    //allow plain xml strings or json strings to be parsed here
+    if ( $.type( tileSource ) == 'string' ) {
+        if ( tileSource.match( /\s*<.*/ ) ) {
+            tileSource = $.parseXml( tileSource );
+        } else if ( tileSource.match( /\s*[\{\[].*/ ) ) {
+            /*jshint evil:true*/
+            tileSource = eval( '(' + tileSource + ')' );
+        }
+    }
+
+    setTimeout( function() {
+        if ( $.type( tileSource ) == 'string' ) {
+            //If its still a string it means it must be a url at this point
+            tileSource = new $.TileSource( tileSource, function( event ) {
+                successCallback( event.tileSource );
+            });
+            tileSource.addHandler( 'open-failed', function( event ) {
+                failCallback( event );
+            } );
+
+        } else if ( $.isPlainObject( tileSource ) || tileSource.nodeType ) {
+            if ( $.isFunction( tileSource.getTileUrl ) ) {
+                //Custom tile source
+                var customTileSource = new $.TileSource( tileSource );
+                customTileSource.getTileUrl = tileSource.getTileUrl;
+                successCallback( customTileSource );
+            } else {
+                //inline configuration
+                var $TileSource = $.TileSource.determineType( _this, tileSource );
+                if ( !$TileSource ) {
+                    failCallback( {
+                        message: "Unable to load TileSource",
+                        source: tileSource
+                    });
+                    return;
+                }
+                var options = $TileSource.prototype.configure.apply( _this, [ tileSource ] );
+                var readySource = new $TileSource( options );
+                successCallback( readySource );
+            }
+        } else {
+            //can assume it's already a tile source implementation
+            successCallback( tileSource );
+        }
+    }, 1 );
+}
+
+/**
+ * @function
+ * @private
+ */
 function openTileSource( viewer, source ) {
-    var _this = viewer,
-        overlay,
-        i;
+    var i,
+        _this = viewer;
 
     if ( _this.source ) {
         _this.close( );
     }
 
-    _this.canvas.innerHTML = "";
     THIS[ _this.hash ].prevContainerSize = _getSafeElemSize( _this.container );
 
 
@@ -7204,7 +7762,7 @@ function openTileSource( viewer, source ) {
             //minZoomLevel:           this.minZoomLevel,
             //maxZoomLevel:           this.maxZoomLevel
         });
-    }else{
+    } else {
         if( source ){
             _this.source = source;
         }
@@ -7236,8 +7794,8 @@ function openTileSource( viewer, source ) {
         viewer:             _this,
         source:             _this.source,
         viewport:           _this.viewport,
-        element:            _this.canvas,
-        overlays:           [].concat( _this.overlays ).concat( _this.source.overlays ),
+        element:            _this.drawersContainer,
+        opacity:            _this.opacity,
         maxImageCacheCount: _this.maxImageCacheCount,
         imageLoaderLimit:   _this.imageLoaderLimit,
         minZoomImageRatio:  _this.minZoomImageRatio,
@@ -7249,8 +7807,10 @@ function openTileSource( viewer, source ) {
         minPixelRatio:      _this.collectionMode ? 0 : _this.minPixelRatio,
         timeout:            _this.timeout,
         debugMode:          _this.debugMode,
-        debugGridColor:     _this.debugGridColor
+        debugGridColor:     _this.debugGridColor,
+        crossOriginPolicy:  _this.crossOriginPolicy
     });
+    _this.drawers = [_this.drawer];
 
     // Now that we have a drawer, see if it supports rotate. If not we need to remove the rotate buttons
     if (!_this.drawer.canRotate()) {
@@ -7287,7 +7847,6 @@ function openTileSource( viewer, source ) {
                 tileSources:       source,
                 tileHost:          _this.tileHost,
                 prefixUrl:         _this.prefixUrl,
-                overlays:          _this.overlays,
                 viewer:            _this
             });
         }
@@ -7305,7 +7864,6 @@ function openTileSource( viewer, source ) {
             tileSources: _this.tileSources,
             tileHost:    _this.tileHost,
             prefixUrl:   _this.prefixUrl,
-            overlays:    _this.overlays,
             viewer:      _this
         });
     }
@@ -7316,39 +7874,9 @@ function openTileSource( viewer, source ) {
     THIS[ _this.hash ].forceRedraw = true;
     _this._updateRequestId = scheduleUpdate( _this, updateMulti );
 
-    //Assuming you had programatically created a bunch of overlays
-    //and added them via configuration
-    for ( i = 0; i < _this.overlayControls.length; i++ ) {
-
-        overlay = _this.overlayControls[ i ];
-
-        if ( overlay.point ) {
-
-            _this.drawer.addOverlay(
-                overlay.id,
-                new $.Point(
-                    overlay.point.X,
-                    overlay.point.Y
-                ),
-                $.OverlayPlacement.TOP_LEFT
-            );
-
-        } else {
-
-            _this.drawer.addOverlay(
-                overlay.id,
-                new $.Rect(
-                    overlay.rect.Point.X,
-                    overlay.rect.Point.Y,
-                    overlay.rect.Width,
-                    overlay.rect.Height
-                ),
-                overlay.placement
-            );
-
-        }
-    }
     VIEWERS[ _this.hash ] = _this;
+
+    loadOverlays( _this );
 
     /**
      * Raised when the viewer has opened and loaded one or more TileSources.
@@ -7365,8 +7893,98 @@ function openTileSource( viewer, source ) {
     return _this;
 }
 
+function loadOverlays( _this ) {
+    _this.currentOverlays = [];
+    for ( var i = 0; i < _this.overlays.length; i++ ) {
+        _this.currentOverlays[ i ] = getOverlayObject( _this, _this.overlays[ i ] );
+    }
+    for ( var j = 0; j < _this.source.overlays.length; j++ ) {
+        _this.currentOverlays[ i + j ] =
+            getOverlayObject( _this, _this.source.overlays[ j ] );
+    }
+}
 
+function getOverlayObject( viewer, overlay ) {
+    if ( overlay instanceof $.Overlay ) {
+        return overlay;
+    }
 
+    var element = null;
+    if ( overlay.element ) {
+        element = $.getElement( overlay.element );
+    } else {
+        var id = overlay.id ?
+            overlay.id :
+            "openseadragon-overlay-" + Math.floor( Math.random() * 10000000 );
+
+        element = $.getElement( overlay.id );
+        if ( !element ) {
+            element         = document.createElement( "a" );
+            element.href    = "#/overlay/" + id;
+        }
+        element.id = id;
+        $.addClass( element, overlay.className ?
+            overlay.className :
+            "openseadragon-overlay"
+        );
+    }
+
+    var location = overlay.location;
+    if ( !location ) {
+        var rect = ( overlay.height && overlay.width ) ? new $.Rect(
+            overlay.x || overlay.px,
+            overlay.y || overlay.py,
+            overlay.width,
+            overlay.height
+        ) : new $.Point(
+            overlay.x || overlay.px,
+            overlay.y || overlay.py
+        );
+        if( overlay.px !== undefined ) {
+            //if they specified 'px' so it's in pixel coordinates so
+            //we need to translate to viewport coordinates
+            rect = viewer.viewport.imageToViewportRectangle( rect );
+        }
+        location = overlay.placement ? viewer.viewport.pointFromPixel( rect ) :
+            rect;
+    }
+
+    var placement = overlay.placement;
+    if ( placement && ( $.type( placement ) === "string" ) ) {
+        placement = $.OverlayPlacement[ overlay.placement.toUpperCase() ];
+    }
+
+    return new $.Overlay({
+        element: element,
+        location: location,
+        placement: placement,
+        onDraw: overlay.onDraw
+    });
+}
+
+/**
+ * @private
+ * @inner
+ * Determines the index of the given overlay in the given overlays array.
+ */
+function getOverlayIndex( overlays, element ) {
+    var i;
+    for ( i = overlays.length - 1; i >= 0; i-- ) {
+        if ( overlays[ i ].element === element ) {
+            return i;
+        }
+    }
+
+    return -1;
+}
+
+function drawOverlays( viewport, overlays, container ) {
+    var i,
+        length = overlays.length;
+    for ( i = 0; i < length; i++ ) {
+        overlays[ i ].drawHTML( container, viewport );
+    }
+}
 
 ///////////////////////////////////////////////////////////////////////////////
 // Schedulers provide the general engine for animation
@@ -7778,7 +8396,8 @@ function updateOnce( viewer ) {
     }
 
     if ( animated ) {
-        viewer.drawer.update();
+        updateDrawers( viewer );
+        drawOverlays( viewer.viewport, viewer.currentOverlays, viewer.overlaysContainer );
         if( viewer.navigator ){
             viewer.navigator.update( viewer.viewport );
         }
@@ -7792,8 +8411,9 @@ function updateOnce( viewer ) {
          * @property {?Object} userData - Arbitrary subscriber-defined object.
          */
         viewer.raiseEvent( "animation" );
-    } else if ( THIS[ viewer.hash ].forceRedraw || viewer.drawer.needsUpdate() ) {
-        viewer.drawer.update();
+    } else if ( THIS[ viewer.hash ].forceRedraw || drawersNeedUpdate( viewer ) ) {
+        updateDrawers( viewer );
+        drawOverlays( viewer.viewport, viewer.currentOverlays, viewer.overlaysContainer );
         if( viewer.navigator ){
             viewer.navigator.update( viewer.viewport );
         }
@@ -7845,6 +8465,21 @@ function resizeViewportAndRecenter( viewer, containerSize, oldBounds, oldCenter 
         newHeight
         );
     viewport.fitBounds( newBounds, true );
+}
+
+function updateDrawers( viewer ) {
+    for (var i = 0; i < viewer.drawers.length; i++ ) {
+        viewer.drawers[i].update();
+    }
+}
+
+function drawersNeedUpdate( viewer ) {
+    for (var i = 0; i < viewer.drawers.length; i++ ) {
+        if (viewer.drawers[i].needsUpdate()) {
+            return true;
+        }
+    }
+    return false;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -8609,10 +9244,10 @@ $.Point.prototype = /** @lends OpenSeadragon.Point.prototype */{
     },
 
     /**
-     * Add another Point to this point and return a new Point.
+     * Substract another Point to this point and return a new Point.
      * @function
-     * @param {OpenSeadragon.Point} point The point to add vector components.
-     * @returns {OpenSeadragon.Point} A new point representing the sum of the
+     * @param {OpenSeadragon.Point} point The point to substract vector components.
+     * @returns {OpenSeadragon.Point} A new point representing the substraction of the
      *  vector components
      */
     minus: function( point ) {
@@ -8623,11 +9258,11 @@ $.Point.prototype = /** @lends OpenSeadragon.Point.prototype */{
     },
 
     /**
-     * Add another Point to this point and return a new Point.
+     * Multiply this point by a factor and return a new Point.
      * @function
-     * @param {OpenSeadragon.Point} point The point to add vector components.
-     * @returns {OpenSeadragon.Point} A new point representing the sum of the
-     *  vector components
+     * @param {Number} factor The factor to multiply vector components.
+     * @returns {OpenSeadragon.Point} A new point representing the multiplication
+     *  of the vector components by the factor
      */
     times: function( factor ) {
         return new $.Point(
@@ -8637,11 +9272,11 @@ $.Point.prototype = /** @lends OpenSeadragon.Point.prototype */{
     },
 
     /**
-     * Add another Point to this point and return a new Point.
+     * Divide this point by a factor and return a new Point.
      * @function
-     * @param {OpenSeadragon.Point} point The point to add vector components.
-     * @returns {OpenSeadragon.Point} A new point representing the sum of the
-     *  vector components
+     * @param {Number} factor The factor to divide vector components.
+     * @returns {OpenSeadragon.Point} A new point representing the division of the
+     *  vector components by the factor
      */
     divide: function( factor ) {
         return new $.Point(
@@ -8651,10 +9286,9 @@ $.Point.prototype = /** @lends OpenSeadragon.Point.prototype */{
     },
 
     /**
-     * Add another Point to this point and return a new Point.
+     * Compute the opposite of this point and return a new Point.
      * @function
-     * @param {OpenSeadragon.Point} point The point to add vector components.
-     * @returns {OpenSeadragon.Point} A new point representing the sum of the
+     * @returns {OpenSeadragon.Point} A new point representing the opposite of the
      *  vector components
      */
     negate: function() {
@@ -8662,11 +9296,10 @@ $.Point.prototype = /** @lends OpenSeadragon.Point.prototype */{
     },
 
     /**
-     * Add another Point to this point and return a new Point.
+     * Compute the distance between this point and another point.
      * @function
-     * @param {OpenSeadragon.Point} point The point to add vector components.
-     * @returns {OpenSeadragon.Point} A new point representing the sum of the
-     *  vector components
+     * @param {OpenSeadragon.Point} point The point to compute the distance with.
+     * @returns {Number} The distance between the 2 points
      */
     distanceTo: function( point ) {
         return Math.sqrt(
@@ -8676,22 +9309,21 @@ $.Point.prototype = /** @lends OpenSeadragon.Point.prototype */{
     },
 
     /**
-     * Add another Point to this point and return a new Point.
+     * Apply a function to each coordinate of this point and return a new point.
      * @function
-     * @param {OpenSeadragon.Point} point The point to add vector components.
-     * @returns {OpenSeadragon.Point} A new point representing the sum of the
-     *  vector components
+     * @param {function} func The function to apply to each coordinate.
+     * @returns {OpenSeadragon.Point} A new point with the coordinates computed
+     * by the specified function
      */
     apply: function( func ) {
         return new $.Point( func( this.x ), func( this.y ) );
     },
 
     /**
-     * Add another Point to this point and return a new Point.
+     * Check if this point is equal to another one.
      * @function
-     * @param {OpenSeadragon.Point} point The point to add vector components.
-     * @returns {OpenSeadragon.Point} A new point representing the sum of the
-     *  vector components
+     * @param {OpenSeadragon.Point} point The point to compare this point with.
+     * @returns {Boolean} true if they are equal, false otherwise.
      */
     equals: function( point ) {
         return (
@@ -8719,11 +9351,10 @@ $.Point.prototype = /** @lends OpenSeadragon.Point.prototype */{
     },
 
     /**
-     * Add another Point to this point and return a new Point.
+     * Convert this point to a string in the format (x,y) where x and y are
+     * rounded to the nearest integer.
      * @function
-     * @param {OpenSeadragon.Point} point The point to add vector components.
-     * @returns {OpenSeadragon.Point} A new point representing the sum of the
-     *  vector components
+     * @returns {String} A string representation of this point.
      */
     toString: function() {
         return "(" + Math.round(this.x) + "," + Math.round(this.y) + ")";
@@ -12961,7 +13592,8 @@ $.Tile.prototype = /** @lends OpenSeadragon.Tile.prototype */{
 (function( $ ){
 
     /**
-     * An enumeration of positions that an overlay may be assigned relative to the viewport.
+     * An enumeration of positions that an overlay may be assigned relative to
+     * the viewport.
      * @member OverlayPlacement
      * @memberof OpenSeadragon
      * @static
@@ -12995,8 +13627,14 @@ $.Tile.prototype = /** @lends OpenSeadragon.Tile.prototype */{
      * @memberof OpenSeadragon
      * @param {Object} options
      * @param {Element} options.element
-     * @param {OpenSeadragon.Point|OpenSeadragon.Rect} options.location
-     * @param {OpenSeadragon.OverlayPlacement} options.placement - Only used if location is an {@link OpenSeadragon.Point}.
+     * @param {OpenSeadragon.Point|OpenSeadragon.Rect} options.location - The
+     * location of the overlay on the image. If a {@link OpenSeadragon.Point}
+     * is specified, the overlay will keep a constant size independently of the
+     * zoom. If a {@link OpenSeadragon.Rect} is specified, the overlay size will
+     * be adjusted when the zoom changes.
+     * @param {OpenSeadragon.OverlayPlacement} [options.placement=OpenSeadragon.OverlayPlacement.TOP_LEFT]
+     * Relative position to the viewport.
+     * Only used if location is a {@link OpenSeadragon.Point}.
      * @param {OpenSeadragon.Overlay.OnDrawCallback} options.onDraw
      */
     $.Overlay = function( element, location, placement ) {
@@ -13012,9 +13650,9 @@ $.Tile.prototype = /** @lends OpenSeadragon.Tile.prototype */{
          */
 
         var options;
-        if( $.isPlainObject( element ) ){
+        if ( $.isPlainObject( element ) ) {
             options = element;
-        } else{
+        } else {
             options = {
                 element: element,
                 location: location,
@@ -13100,7 +13738,7 @@ $.Tile.prototype = /** @lends OpenSeadragon.Tile.prototype */{
                 element.parentNode.removeChild( element );
                 //this should allow us to preserve overlays when required between
                 //pages
-                if( element.prevElementParent ){
+                if ( element.prevElementParent ) {
                     style.display = 'none';
                     //element.prevElementParent.insertBefore(
                     //    element,
@@ -13135,9 +13773,15 @@ $.Tile.prototype = /** @lends OpenSeadragon.Tile.prototype */{
                     viewport.viewer.drawer.canvas.width / 2,
                     viewport.viewer.drawer.canvas.height / 2
                 ),
-                degrees = viewport.degrees,
-                position,
-                size,
+                degrees  = viewport.degrees,
+                position = viewport.pixelFromPoint(
+                    this.bounds.getTopLeft(),
+                    true
+                ),
+                size     = viewport.deltaPixelsFromPoints(
+                    this.bounds.getSize(),
+                    true
+                ),
                 overlayCenter;
 
             if ( element.parentNode != container ) {
@@ -13151,8 +13795,8 @@ $.Tile.prototype = /** @lends OpenSeadragon.Tile.prototype */{
                 this.size = $.getElementSize( element );
             }
 
-            position = this.position;
-            size     = this.size;
+            this.position = position;
+            this.size     = size;
 
             this.adjust( position, size );
 
@@ -13305,10 +13949,10 @@ $.Drawer = function( options ) {
 
 
         //internal state / configurable settings
-        overlays:           [], // An unordered list of Overlays added.
-        collectionOverlays: {},
+        collectionOverlays: {}, // For collection mode. Here an overlay is actually a viewer.
 
         //configurable settings
+        opacity:            $.DEFAULT_SETTINGS.opacity,
         maxImageCacheCount: $.DEFAULT_SETTINGS.maxImageCacheCount,
         imageLoaderLimit:   $.DEFAULT_SETTINGS.imageLoaderLimit,
         minZoomImageRatio:  $.DEFAULT_SETTINGS.minZoomImageRatio,
@@ -13319,7 +13963,8 @@ $.Drawer = function( options ) {
         alwaysBlend:        $.DEFAULT_SETTINGS.alwaysBlend,
         minPixelRatio:      $.DEFAULT_SETTINGS.minPixelRatio,
         debugMode:          $.DEFAULT_SETTINGS.debugMode,
-        timeout:            $.DEFAULT_SETTINGS.timeout
+        timeout:            $.DEFAULT_SETTINGS.timeout,
+        crossOriginPolicy:  $.DEFAULT_SETTINGS.crossOriginPolicy
 
     }, options );
 
@@ -13361,22 +14006,11 @@ $.Drawer = function( options ) {
     this.canvas.style.width     = "100%";
     this.canvas.style.height    = "100%";
     this.canvas.style.position  = "absolute";
+    $.setElementOpacity( this.canvas, this.opacity, true );
 
     // explicit left-align
     this.container.style.textAlign = "left";
     this.container.appendChild( this.canvas );
-
-    //create the correct type of overlay by convention if the overlays
-    //are not already OpenSeadragon.Overlays
-    for( i = 0; i < this.overlays.length; i++ ){
-        if( $.isPlainObject( this.overlays[ i ] ) ){
-
-            this.overlays[ i ] = addOverlayFromConfiguration( this, this.overlays[ i ]);
-
-        } else if ( $.isFunction( this.overlays[ i ] ) ){
-            //TODO
-        }
-    }
 
     //this.profiler    = new $.Profiler();
 };
@@ -13395,57 +14029,15 @@ $.Drawer.prototype = /** @lends OpenSeadragon.Drawer.prototype */{
      * @param {OpenSeadragon.OverlayPlacement} placement - The position of the
      *      viewport which the location coordinates will be treated as relative
      *      to.
-     * @param {function} onDraw - If supplied the callback is called when the overlay 
+     * @param {function} onDraw - If supplied the callback is called when the overlay
      *      needs to be drawn. It it the responsibility of the callback to do any drawing/positioning.
      *      It is passed position, size and element.
      * @fires OpenSeadragon.Viewer.event:add-overlay
+     * @deprecated - use {@link OpenSeadragon.Viewer#addOverlay} instead.
      */
     addOverlay: function( element, location, placement, onDraw ) {
-        var options;
-        if( $.isPlainObject( element ) ){
-            options = element;
-        } else {
-            options = {
-                element: element,
-                location: location,
-                placement: placement,
-                onDraw: onDraw
-            };
-        }
-
-        element = $.getElement(options.element);
-
-        if ( getOverlayIndex( this.overlays, element ) >= 0 ) {
-            // they're trying to add a duplicate overlay
-            return;
-        }
-
-        this.overlays.push( new $.Overlay({
-            element: element,
-            location: options.location,
-            placement: options.placement,
-            onDraw: options.onDraw
-        }) );
-        this.updateAgain = true;
-        if( this.viewer ){
-            /**
-             * Raised when an overlay is added to the viewer (see {@link OpenSeadragon.Drawer#addOverlay}).
-             *
-             * @event add-overlay
-             * @memberof OpenSeadragon.Viewer
-             * @type {object}
-             * @property {OpenSeadragon.Viewer} eventSource - A reference to the Viewer which raised the event.
-             * @property {Element} element - The overlay element.
-             * @property {OpenSeadragon.Point|OpenSeadragon.Rect} location
-             * @property {OpenSeadragon.OverlayPlacement} placement
-             * @property {?Object} userData - Arbitrary subscriber-defined object.
-             */
-            this.viewer.raiseEvent( 'add-overlay', {
-                element: element,
-                location: options.location,
-                placement: options.placement
-            });
-        }
+        $.console.error("drawer.addOverlay is deprecated. Use viewer.addOverlay instead.");
+        this.viewer.addOverlay( element, location, placement, onDraw );
         return this;
     },
 
@@ -13460,36 +14052,11 @@ $.Drawer.prototype = /** @lends OpenSeadragon.Drawer.prototype */{
      *      to.
      * @return {OpenSeadragon.Drawer} Chainable.
      * @fires OpenSeadragon.Viewer.event:update-overlay
+     * @deprecated - use {@link OpenSeadragon.Viewer#updateOverlay} instead.
      */
     updateOverlay: function( element, location, placement ) {
-        var i;
-
-        element = $.getElement( element );
-        i = getOverlayIndex( this.overlays, element );
-
-        if ( i >= 0 ) {
-            this.overlays[ i ].update( location, placement );
-            this.updateAgain = true;
-        }
-        if( this.viewer ){
-            /**
-             * Raised when an overlay's location or placement changes (see {@link OpenSeadragon.Drawer#updateOverlay}).
-             *
-             * @event update-overlay
-             * @memberof OpenSeadragon.Viewer
-             * @type {object}
-             * @property {OpenSeadragon.Viewer} eventSource - A reference to the Viewer which raised the event.
-             * @property {Element} element
-             * @property {OpenSeadragon.Point|OpenSeadragon.Rect} location
-             * @property {OpenSeadragon.OverlayPlacement} placement
-             * @property {?Object} userData - Arbitrary subscriber-defined object.
-             */
-            this.viewer.raiseEvent( 'update-overlay', {
-                element: element,
-                location: location,
-                placement: placement
-            });
-        }
+        $.console.error("drawer.updateOverlay is deprecated. Use viewer.updateOverlay instead.");
+        this.viewer.updateOverlay( element, location, placement );
         return this;
     },
 
@@ -13501,33 +14068,11 @@ $.Drawer.prototype = /** @lends OpenSeadragon.Drawer.prototype */{
      *      element id which represent the ovelay content to be removed.
      * @return {OpenSeadragon.Drawer} Chainable.
      * @fires OpenSeadragon.Viewer.event:remove-overlay
+     * @deprecated - use {@link OpenSeadragon.Viewer#removeOverlay} instead.
      */
     removeOverlay: function( element ) {
-        var i;
-
-        element = $.getElement( element );
-        i = getOverlayIndex( this.overlays, element );
-
-        if ( i >= 0 ) {
-            this.overlays[ i ].destroy();
-            this.overlays.splice( i, 1 );
-            this.updateAgain = true;
-        }
-        if( this.viewer ){
-            /**
-             * Raised when an overlay is removed from the viewer (see {@link OpenSeadragon.Drawer#removeOverlay}).
-             *
-             * @event remove-overlay
-             * @memberof OpenSeadragon.Viewer
-             * @type {object}
-             * @property {OpenSeadragon.Viewer} eventSource - A reference to the Viewer which raised the event.
-             * @property {Element} element - The overlay element.
-             * @property {?Object} userData - Arbitrary subscriber-defined object.
-             */
-            this.viewer.raiseEvent( 'remove-overlay', {
-                element: element
-            });
-        }
+        $.console.error("drawer.removeOverlay is deprecated. Use viewer.removeOverlay instead.");
+        this.viewer.updateOverlay( element );
         return this;
     },
 
@@ -13537,28 +14082,34 @@ $.Drawer.prototype = /** @lends OpenSeadragon.Drawer.prototype */{
      * @method
      * @return {OpenSeadragon.Drawer} Chainable.
      * @fires OpenSeadragon.Viewer.event:clear-overlay
+     * @deprecated - use {@link OpenSeadragon.Viewer#clearOverlays} instead.
      */
     clearOverlays: function() {
-        while ( this.overlays.length > 0 ) {
-            this.overlays.pop().destroy();
-            this.updateAgain = true;
-        }
-        if( this.viewer ){
-            /**
-             * Raised when all overlays are removed from the viewer (see {@link OpenSeadragon.Drawer#clearOverlays}).
-             *
-             * @event clear-overlay
-             * @memberof OpenSeadragon.Viewer
-             * @type {object}
-             * @property {OpenSeadragon.Viewer} eventSource - A reference to the Viewer which raised the event.
-             * @property {?Object} userData - Arbitrary subscriber-defined object.
-             */
-            this.viewer.raiseEvent( 'clear-overlay', {} );
-        }
+        $.console.error("drawer.clearOverlays is deprecated. Use viewer.clearOverlays instead.");
+        this.viewer.clearOverlays();
         return this;
     },
 
+    /**
+     * Set the opacity of the drawer.
+     * @method
+     * @param {Number} opacity
+     * @return {OpenSeadragon.Drawer} Chainable.
+     */
+    setOpacity: function( opacity ) {
+        this.opacity = opacity;
+        $.setElementOpacity( this.canvas, this.opacity, true );
+        return this;
+    },
 
+    /**
+     * Get the opacity of the drawer.
+     * @method
+     * @returns {Number}
+     */
+    getOpacity: function() {
+        return this.opacity;
+    },
     /**
      * Returns whether the Drawer is scheduled for an update at the
      *      soonest possible opportunity.
@@ -13637,7 +14188,10 @@ $.Drawer.prototype = /** @lends OpenSeadragon.Drawer.prototype */{
             this.downloading++;
 
             image = new Image();
-            image.crossOrigin = 'Anonymous';
+
+            if (_this.crossOriginPolicy !== false) {
+              image.crossOrigin = _this.crossOriginPolicy;
+            }
 
             complete = function( imagesrc, resultingImage ){
                 _this.downloading--;
@@ -13684,61 +14238,6 @@ $.Drawer.prototype = /** @lends OpenSeadragon.Drawer.prototype */{
         return this.useCanvas;
     }
 };
-
-/**
- * @private
- * @inner
- */
- function addOverlayFromConfiguration( drawer, overlay ){
-
-    var element  = null,
-        rect = ( overlay.height && overlay.width ) ? new $.Rect(
-            overlay.x || overlay.px,
-            overlay.y || overlay.py,
-            overlay.width,
-            overlay.height
-        ) : new $.Point(
-            overlay.x || overlay.px,
-            overlay.y || overlay.py
-        ),
-        id = overlay.id ?
-            overlay.id :
-            "openseadragon-overlay-"+Math.floor(Math.random()*10000000);
-
-    element = $.getElement(overlay.id);
-    if( !element ){
-        element         = document.createElement("a");
-        element.href    = "#/overlay/"+id;
-    }
-    element.id        = id;
-    $.addClass( element, overlay.className ?
-        overlay.className :
-        "openseadragon-overlay"
-    );
-
-
-    if(overlay.px !== undefined){
-        //if they specified 'px' so it's in pixel coordinates so
-        //we need to translate to viewport coordinates
-        rect = drawer.viewport.imageToViewportRectangle( rect );
-    }
-    
-    if( overlay.placement ){
-        return new $.Overlay({
-            element: element,
-            location: drawer.viewport.pointFromPixel(rect),
-            placement: $.OverlayPlacement[overlay.placement.toUpperCase()],
-            onDraw: overlay.onDraw
-        });
-    }else{
-        return new $.Overlay({
-            element: element,
-            location: rect,
-            onDraw: overlay.onDraw
-        });
-    }
-
-}
 
 /**
  * @private
@@ -13913,7 +14412,6 @@ function updateViewport( drawer ) {
 
     //TODO
     drawTiles( drawer, drawer.lastDrawn );
-    drawOverlays( drawer.viewport, drawer.overlays, drawer.container );
 
     //TODO
     if ( best ) {
@@ -14363,23 +14861,6 @@ function resetCoverage( coverage, level ) {
 /**
  * @private
  * @inner
- * Determines the 'z-index' of the given overlay.  Overlays are ordered in
- * a z-index based on the order they are added to the Drawer.
- */
-function getOverlayIndex( overlays, element ) {
-    var i;
-    for ( i = overlays.length - 1; i >= 0; i-- ) {
-        if ( overlays[ i ].element == element ) {
-            return i;
-        }
-    }
-
-    return -1;
-}
-
-/**
- * @private
- * @inner
  * Determines whether the 'last best' tile for the area is better than the
  * tile in question.
  */
@@ -14412,28 +14893,6 @@ function finishLoadingImage( image, callback, successful, jobid ){
         callback( image.src, successful ? image : null);
     });
 
-}
-
-
-function drawOverlays( viewport, overlays, container ){
-    var i,
-        length = overlays.length;
-    for ( i = 0; i < length; i++ ) {
-        drawOverlay( viewport, overlays[ i ], container );
-    }
-}
-
-function drawOverlay( viewport, overlay, container ){
-
-    overlay.position = viewport.pixelFromPoint(
-        overlay.bounds.getTopLeft(),
-        true
-    );
-    overlay.size     = viewport.deltaPixelsFromPoints(
-        overlay.bounds.getSize(),
-        true
-    );
-    overlay.drawHTML( container, viewport );
 }
 
 function drawTiles( drawer, lastDrawn ){
@@ -14515,7 +14974,7 @@ function drawTiles( drawer, lastDrawn ){
                             ')';
                     }
 
-                    drawer.addOverlay(
+                    drawer.viewer.addOverlay(
                         viewer.element,
                         tile.bounds
                     );
@@ -15319,7 +15778,7 @@ $.Viewport.prototype = /** @lends OpenSeadragon.Viewport.prototype */{
             throw new Error('Currently only 0, 90, 180, and 270 degrees are supported.');
         }
         this.degrees = degrees;
-        this.viewer.drawer.update();
+        this.viewer.forceRedraw();
         
         return this;
     },
@@ -15587,12 +16046,12 @@ $.Viewport.prototype = /** @lends OpenSeadragon.Viewport.prototype */{
     /**
      * Convert pixel coordinates relative to the image to
      * viewer element coordinates.
-     * @param {OpenSeadragon.Point} point
+     * @param {OpenSeadragon.Point} pixel
      * @returns {OpenSeadragon.Point}
      */
-    imageToViewerElementCoordinates: function( point ) {
-        var pixel = this.pixelFromPoint( point, true );
-        return this.imageToViewportCoordinates( pixel );
+    imageToViewerElementCoordinates: function( pixel ) {
+        var point = this.imageToViewportCoordinates( pixel );
+        return this.pixelFromPoint( point, true );
     },
 
     /**
