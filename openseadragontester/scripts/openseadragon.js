@@ -5826,6 +5826,7 @@ $.Control.prototype = /** @lends OpenSeadragon.Control.prototype */{
 
 }( OpenSeadragon ));
 
+/// <reference path="http://localhost/OpenSeadragonImagingHelper/index.html" />
 /*
  * OpenSeadragon - Viewer
  *
@@ -8075,7 +8076,7 @@ function onCanvasDrag( event ) {
         if( !this.panVertical ){
             event.delta.y = 0;
         }
-        this.viewport.panBy( this.viewport.deltaPointsFromPixels( event.delta.negate() ), true );//( event.pointerType !== 'mouse' ) ? true : false
+        this.viewport.panBy( this.viewport.deltaPointsFromPixels( event.delta.negate() ), ( event.pointerType !== 'mouse' ) ? true : false );
         if( this.constrainDuringPan ){
             this.viewport.applyConstraints();
         }
@@ -8114,8 +8115,7 @@ function onCanvasDragEnd( event ) {
 //originalEvent:
 //preventDefaultAction:
 //userData:
-    //event.pointerType !== 'mouse' && 
-    if ( !event.preventDefaultAction && this.viewport && ( event.velocity > 10 || event.velocity < -10 ) ) {
+    if ( event.pointerType !== 'mouse' && !event.preventDefaultAction && this.viewport && ( event.velocity > 10 || event.velocity < -10 ) ) {
         //window.alert('velocity: ' + event.velocity + '\nangle: ' + (event.angle * 180.0 / Math.PI) +
         //             '\nvx: ' + event.velocity * Math.cos(event.angle) + '\nvy: ' + event.velocity * Math.sin(event.angle));
         var amplitudeX = 0.25 * ( event.velocity * Math.cos( event.angle ) ),
