@@ -8167,7 +8167,7 @@ function onCanvasDrag( event ) {
         if( !this.panVertical ){
             event.delta.y = 0;
         }
-        this.viewport.panBy( this.viewport.deltaPointsFromPixels( event.delta.negate() ), ( event.pointerType !== 'mouse' ) ? true : false );
+        this.viewport.panBy( this.viewport.deltaPointsFromPixels( event.delta.negate() ), true );//( event.pointerType !== 'mouse' ) ? true : false
         if( this.constrainDuringPan ){
             this.viewport.applyConstraints();
         }
@@ -8206,7 +8206,8 @@ function onCanvasDragEnd( event ) {
 //originalEvent:
 //preventDefaultAction:
 //userData:
-    if ( event.pointerType !== 'mouse' && !event.preventDefaultAction && this.viewport && ( event.velocity > 20 || event.velocity < -20 ) ) {
+    //event.pointerType !== 'mouse' && 
+    if ( !event.preventDefaultAction && this.viewport && ( event.velocity > 20 || event.velocity < -20 ) ) {
         //window.alert('velocity: ' + event.velocity + '\nangle: ' + (event.angle * 180.0 / Math.PI) +
         //             '\nvx: ' + event.velocity * Math.cos(event.angle) + '\nvy: ' + event.velocity * Math.sin(event.angle));
         var amplitudeX = 0.3 * ( event.velocity * Math.cos( event.angle ) ),
