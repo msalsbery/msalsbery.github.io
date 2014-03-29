@@ -3313,14 +3313,11 @@ $.EventSource.prototype = /** @lends OpenSeadragon.EventSource.prototype */{
             for ( i = 0; i < len; i++ ) {
                 trackPoint = trackerPoints[ i ];
                 gPoint = trackPoint.gPoint;
-
                 gPoint.angle = Math.atan2( gPoint.currentPos.y - trackPoint.lastPos.y, gPoint.currentPos.x - trackPoint.lastPos.x );
-
                 distance = trackPoint.lastPos.distanceTo( gPoint.currentPos );
                 trackPoint.lastPos = gPoint.currentPos;
-
                 velocity = 1000 * distance / ( elapsedTime + 1 );
-                gPoint.velocity = 0.8 * velocity + 0.2 * gPoint.velocity;
+                gPoint.velocity = 0.75 * velocity + 0.25 * gPoint.velocity;
             }
         };
 
@@ -8210,10 +8207,11 @@ function onCanvasDragEnd( event ) {
     if ( !event.preventDefaultAction && this.viewport && ( event.velocity > 20 || event.velocity < -20 ) ) {
         //window.alert('velocity: ' + event.velocity + '\nangle: ' + (event.angle * 180.0 / Math.PI) +
         //             '\nvx: ' + event.velocity * Math.cos(event.angle) + '\nvy: ' + event.velocity * Math.sin(event.angle));
-        var amplitudeX = 0.3 * ( event.velocity * Math.cos( event.angle ) ),
-            amplitudeY = 0.3 * ( event.velocity * Math.sin( event.angle ) ),
+        var amplitudeX = 0.35 * ( event.velocity * Math.cos( event.angle ) ),
+            amplitudeY = 0.35 * ( event.velocity * Math.sin( event.angle ) ),
             center = this.viewport.pixelFromPoint( this.viewport.getCenter( true ) ),
-            target = this.viewport.pointFromPixel( new $.Point( Math.round( center.x - amplitudeX ), Math.round( center.y - amplitudeY ) ) );
+            //target = this.viewport.pointFromPixel( new $.Point( Math.round( center.x - amplitudeX ), Math.round( center.y - amplitudeY ) ) );
+            target = this.viewport.pointFromPixel( new $.Point( center.x - amplitudeX, center.y - amplitudeY ) );
         this.viewport.panTo( target, false );
         this.viewport.applyConstraints();
     }
@@ -8241,8 +8239,8 @@ function onCanvasDragEnd( event ) {
 }
 
 function onCanvasRelease( event ) {
-    if ( event.insideElementPressed && this.viewport ) {
-        this.viewport.applyConstraints();
+    if ( event.pointerType === 'mouse' && event.insideElementPressed && this.viewport ) {
+        //this.viewport.applyConstraints();
     }
     /**
      * Raised when the mouse button is released or touch ends on the {@link OpenSeadragon.Viewer#canvas} element.
