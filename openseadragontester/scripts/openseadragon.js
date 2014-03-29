@@ -1,5 +1,5 @@
 //! OpenSeadragon 1.0.0
-//! Built on 2014-03-28
+//! Built on 2014-03-29
 //! Git commit: v1.0.0-108-g70716b0-dirty
 //! http://openseadragon.github.io
 //! License: http://openseadragon.github.io/license/
@@ -748,7 +748,7 @@ window.OpenSeadragon = window.OpenSeadragon || function( options ){
             maxZoomLevel:           null,
 
             //UI RESPONSIVENESS AND FEEL
-            springStiffness:        7.0,
+            springStiffness:        5.0,//7.0,
             clickTimeThreshold:     300,
             clickDistThreshold:     5,
             zoomPerClick:           2,
@@ -3284,6 +3284,86 @@ $.EventSource.prototype = /** @lends OpenSeadragon.EventSource.prototype */{
 
 
     /**
+     * @member gesturePointVelocityTracker
+     * @memberof OpenSeadragon.MouseTracker
+     * @private
+     */
+    $.MouseTracker.gesturePointVelocityTracker = (function () {
+        var trackerPoints = [],
+            intervalId = 0,
+            lastTime = 0;
+
+        var _generateGuid = function ( tracker, gPoint ) {
+            return tracker.hash.toString() + gPoint.type + gPoint.id.toString();
+        };
+
+        var _doTracking = function () {
+            var i,
+                len = trackerPoints.length,
+                trackPoint,
+                gPoint,
+                now = $.now(),
+                elapsedTime,
+                distance,
+                velocity;
+
+            elapsedTime = now - lastTime;
+            lastTime = now;
+
+            for ( i = 0; i < len; i++ ) {
+                trackPoint = trackerPoints[ i ];
+                gPoint = trackPoint.gPoint;
+
+                gPoint.angle = Math.atan2( gPoint.currentPos.y - trackPoint.lastPos.y, gPoint.currentPos.x - trackPoint.lastPos.x );
+
+                distance = trackPoint.lastPos.distanceTo( gPoint.currentPos );
+                trackPoint.lastPos = gPoint.currentPos;
+
+                velocity = 1000 * distance / ( elapsedTime + 1 );
+                gPoint.velocity = 0.8 * velocity + 0.2 * gPoint.velocity;
+            }
+        };
+
+        var addPoint = function ( tracker, gPoint ) {
+            var guid = _generateGuid( tracker, gPoint );
+            gPoint.velocity = 0.0;
+            trackerPoints.push(
+                {
+                    guid: guid,
+                    gPoint: gPoint,
+                    lastPos: gPoint.currentPos
+                } );
+            if ( trackerPoints.length === 1 ) {
+                lastTime = $.now();
+                intervalId = window.setInterval( _doTracking, 50 );
+            }
+        };
+
+        var removePoint = function ( tracker, gPoint ) {
+            var guid = _generateGuid( tracker, gPoint ),
+                i,
+                len = trackerPoints.length;
+            for ( i = 0; i < len; i++ ) {
+                if ( trackerPoints[ i ].guid === guid ) {
+                    //gPoint = trackerPoints[ i ].gPoint;
+                    trackerPoints.splice( i, 1 );
+                    len--;
+                    if ( len === 0 ) {
+                        window.clearInterval( intervalId );
+                    }
+                    break;
+                }
+            }
+        };
+
+        return {
+            addPoint:    addPoint,
+            removePoint: removePoint
+        };
+    } )();
+
+
+    /**
      * Detect available mouse wheel event name.
      */
     $.MouseTracker.wheelEventName = ( $.Browser.vendor == $.BROWSERS.IE && $.Browser.version > 8 ) ||
@@ -3367,6 +3447,8 @@ $.EventSource.prototype = /** @lends OpenSeadragon.EventSource.prototype */{
      *     True if mouse cursor or contact point is currently inside the screen area of the tracked element.
      * @property {Number} velocity
      *     Continuously computed velocity, in pixels per second.
+     * @property {Number} angle
+     *     Continuously computed angle, in radians. Only valid if velocity > 0.
      * @property {OpenSeadragon.Point} startPos
      *     The initial pointer position, relative to the page including any scrolling.
      * @property {Number} startTime
@@ -4725,14 +4807,18 @@ $.EventSource.prototype = /** @lends OpenSeadragon.EventSource.prototype */{
             for ( i = 0; i < gPointCount; i++ ) {
                 curGPoint = gPoints[ i ];
 
-                pointsListLength = pointsList.add( curGPoint );
-
                 // Initialize for drag/swipe/pinch
                 curGPoint.velocity = 0;
                 curGPoint.startPos = curGPoint.currentPos;
                 curGPoint.startTime = curGPoint.currentTime;
                 curGPoint.lastPos = curGPoint.currentPos;
                 curGPoint.lastTime = curGPoint.currentTime;
+
+                if ( tracker.dragHandler || tracker.dragEndHandler || tracker.pinchHandler) {
+                    $.MouseTracker.gesturePointVelocityTracker.addPoint( tracker, curGPoint );
+                }
+
+                pointsListLength = pointsList.add( curGPoint );
 
                 if ( pointsListLength == 1 ) {
                     // Press
@@ -4923,9 +5009,6 @@ $.EventSource.prototype = /** @lends OpenSeadragon.EventSource.prototype */{
                     updateGPoint.lastTime = updateGPoint.currentTime;
                     updateGPoint.currentPos = curGPoint.currentPos;
                     updateGPoint.currentTime = curGPoint.currentTime;
-                    distance = updateGPoint.lastPos.distanceTo( updateGPoint.currentPos );
-                    velocity = 1000 * distance / ( 1 + ( updateGPoint.currentTime - updateGPoint.lastTime ) );
-                    updateGPoint.velocity = 0.8 * velocity + 0.2 * updateGPoint.velocity;
                 }
 
                 //if ( tracker.stopHandler ) {
@@ -5058,10 +5141,17 @@ $.EventSource.prototype = /** @lends OpenSeadragon.EventSource.prototype */{
                 removedGPoint = pointsList.getById( curGPoint.id );
 
                 if ( removedGPoint ) {
-                    pointsListLength = pointsList.removeById( curGPoint.id );
 
-                    releasePoint = curGPoint.currentPos;
-                    releaseTime = curGPoint.currentTime;
+                    //releasePoint = curGPoint.currentPos;
+                    //releaseTime = curGPoint.currentTime;
+                    releasePoint = removedGPoint.currentPos;
+                    releaseTime = removedGPoint.currentTime;
+
+                    if ( tracker.dragHandler || tracker.dragEndHandler || tracker.pinchHandler) {
+                        $.MouseTracker.gesturePointVelocityTracker.removePoint( tracker, removedGPoint );
+                    }
+
+                    pointsListLength = pointsList.removeById( curGPoint.id );
 
                     if ( pointsListLength === 0 ) {
 
@@ -5089,8 +5179,9 @@ $.EventSource.prototype = /** @lends OpenSeadragon.EventSource.prototype */{
                         }
 
                         // Drag End
-                        if ( tracker.dragEndHandler && ( releaseTime - removedGPoint.startTime > tracker.clickTimeThreshold ||
-                                                         removedGPoint.startPos.distanceTo( releasePoint ) > tracker.clickDistThreshold ) ) {
+// && ( releaseTime - removedGPoint.startTime > tracker.clickTimeThreshold ||
+//                                                         removedGPoint.startPos.distanceTo( releasePoint ) > tracker.clickDistThreshold )
+                        if ( tracker.dragEndHandler ) {
                             //// End of drag inertia
                             //if ( pointCount == 1 && tracker.dragEndHandler && !removedGPoint.currentPos.equals( removedGPoint.lastPos ) ) {
                             //    distance = removedGPoint.lastPos.distanceTo( removedGPoint.currentPos );
@@ -5104,7 +5195,7 @@ $.EventSource.prototype = /** @lends OpenSeadragon.EventSource.prototype */{
                                     pointerType:          removedGPoint.type,
                                     position:             getPointRelative( removedGPoint.currentPos, tracker.element ),
                                     velocity:             removedGPoint.velocity,
-                                    angle:                Math.atan2( removedGPoint.currentPos.y - removedGPoint.startPos.y, removedGPoint.currentPos.x - removedGPoint.startPos.x ),// * 180.0 / Math.PI,
+                                    angle:                removedGPoint.angle,
                                     shift:                event.shiftKey,
                                     isTouchEvent:         removedGPoint.type === 'touch',
                                     originalEvent:        event,
@@ -5144,8 +5235,8 @@ $.EventSource.prototype = /** @lends OpenSeadragon.EventSource.prototype */{
                     }
                     else if ( pointsListLength === 1 ) {
                         // Reset for drag/swipe
-                        updateGPoint = pointsList.asArray()[0];
-                        updateGPoint.velocity = 0;
+                        //updateGPoint = pointsList.asArray()[0];
+                        //updateGPoint.velocity = 0;
                         //updateGPoint.startPos = updateGPoint.currentPos;
                         //updateGPoint.startTime = updateGPoint.currentTime;
                         //updateGPoint.lastPos = updateGPoint.currentPos;
@@ -8115,11 +8206,11 @@ function onCanvasDragEnd( event ) {
 //originalEvent:
 //preventDefaultAction:
 //userData:
-    if ( event.pointerType !== 'mouse' && !event.preventDefaultAction && this.viewport && ( event.velocity > 10 || event.velocity < -10 ) ) {
+    if ( event.pointerType !== 'mouse' && !event.preventDefaultAction && this.viewport && ( event.velocity > 20 || event.velocity < -20 ) ) {
         //window.alert('velocity: ' + event.velocity + '\nangle: ' + (event.angle * 180.0 / Math.PI) +
         //             '\nvx: ' + event.velocity * Math.cos(event.angle) + '\nvy: ' + event.velocity * Math.sin(event.angle));
-        var amplitudeX = 0.25 * ( event.velocity * Math.cos( event.angle ) ),
-            amplitudeY = 0.25 * ( event.velocity * Math.sin( event.angle ) ),
+        var amplitudeX = 0.3 * ( event.velocity * Math.cos( event.angle ) ),
+            amplitudeY = 0.3 * ( event.velocity * Math.sin( event.angle ) ),
             center = this.viewport.pixelFromPoint( this.viewport.getCenter( true ) ),
             target = this.viewport.pointFromPixel( new $.Point( Math.round( center.x - amplitudeX ), Math.round( center.y - amplitudeY ) ) );
         this.viewport.panTo( target, false );
