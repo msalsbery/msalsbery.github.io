@@ -1,6 +1,6 @@
 //! OpenSeadragon 1.0.0
 //! Built on 2014-03-31
-//! Git commit: v1.0.0-120-g73b7519-dirty
+//! Git commit: v1.0.0-122-g8df20a5-dirty
 //! http://openseadragon.github.io
 //! License: http://openseadragon.github.io/license/
 
@@ -3240,14 +3240,13 @@ $.EventSource.prototype = /** @lends OpenSeadragon.EventSource.prototype */{
 
 
     /**
+     * Provides continuous computation of velocity (speed and direction) of active pointers.
+     * This is a singleton, used by all MouseTracker instances. Currently it is extremely unlikely there will ever be more than
+     * two active gesture pointers at a time.
+     *
      * @member gesturePointVelocityTracker
      * @memberof OpenSeadragon.MouseTracker
      * @private
-     *
-     * Provides continuous computation of velocity (speed and direction) of active pointers.
-     *
-     * This is a singleton, used by all MouseTracker instances. Currently it is extremely unlikely there will ever be more than
-     * two active gesture pointers at a time.
      */
     $.MouseTracker.gesturePointVelocityTracker = (function () {
         var trackerPoints = [],
@@ -3396,10 +3395,6 @@ $.EventSource.prototype = /** @lends OpenSeadragon.EventSource.prototype */{
     }
     
 
-//*******************************************************************************************************************************************
-//** Utility Types/Classes
-
-
     /**
      * Represents a point of contact on the screen made by a mouse cursor, pen, touch, or other pointing device.
      *
@@ -3415,9 +3410,9 @@ $.EventSource.prototype = /** @lends OpenSeadragon.EventSource.prototype */{
      * @property {Boolean} insideElement
      *     True if mouse cursor or contact point is currently inside the bounds of the tracked element.
      * @property {Number} speed
-     *     Continuously computed speed, in pixels per second.
+     *     Current computed speed, in pixels per second.
      * @property {Number} direction
-     *     Continuously computed direction, in radians. Only valid if speed > 0.
+     *     Current computed direction, expressed as an angle counterclockwise relative to the positive X axis (-pi to pi, in radians). Only valid if speed > 0.
      * @property {OpenSeadragon.Point} startPos
      *     The initial pointer position, relative to the page including any scrolling.
      * @property {Number} startTime
@@ -3437,6 +3432,7 @@ $.EventSource.prototype = /** @lends OpenSeadragon.EventSource.prototype */{
      * @class GesturePointList
      * @classdesc Provides an abstraction for a set of {@link OpenSeadragon.MouseTracker.GesturePoint} objects.
      * @memberof OpenSeadragon.MouseTracker
+     * @private
      */
     $.MouseTracker.GesturePointList = function () {
         this._gPoints = [];
@@ -3497,10 +3493,6 @@ $.EventSource.prototype = /** @lends OpenSeadragon.EventSource.prototype */{
         }
     };
     
-
-//*******************************************************************************************************************************************
-//** Utility Functions
-
 
     /**
      * Starts tracking mouse events on this element.
@@ -3758,10 +3750,6 @@ $.EventSource.prototype = /** @lends OpenSeadragon.EventSource.prototype */{
     function getCenterPoint( point1, point2 ) {
         return new $.Point( ( point1.x + point2.x ) / 2, ( point1.y + point2.y ) / 2 );
     }
-
-
-//*******************************************************************************************************************************************
-//** DOM EVent Handlers
 
 
     /**
@@ -4435,10 +4423,6 @@ $.EventSource.prototype = /** @lends OpenSeadragon.EventSource.prototype */{
 
         cancelPointers( tracker, event, [ gPoint ] );
     }
-
-
-//*******************************************************************************************************************************************
-//** Event Processing Functions
 
 
     /**
@@ -5658,7 +5642,6 @@ $.Control.prototype = /** @lends OpenSeadragon.Control.prototype */{
 
 }( OpenSeadragon ));
 
-/// <reference path="http://localhost/OpenSeadragonImagingHelper/index.html" />
 /*
  * OpenSeadragon - Viewer
  *
