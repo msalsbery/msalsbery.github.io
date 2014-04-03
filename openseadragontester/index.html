@@ -43,10 +43,18 @@
             showSequenceControl: true,
             sequenceControlAnchor: OpenSeadragon.ControlAnchor.TOP_LEFT,
             showNavigator: false,
-            visibilityRatio: 0.25,
+            //visibilityRatio: 0.25,
             minZoomLevel: 0.05,
             maxZoomLevel: 10,
-            //zoomPerClick: 1.4,
+            //clickTimeThreshold:     300,
+            //clickDistThreshold:     5,
+            springStiffness:        5.0,
+            animationTime:          1.2,
+            gestureSettingsMouse:   { zoomOnClick: true,  flickEnabled: false, flickMinSpeed: 20, flickMomentum: 0.40 },
+            gestureSettingsTouch:   { zoomOnClick: false, flickEnabled: true,  flickMinSpeed: 20, flickMomentum: 0.40 },
+            gestureSettingsPen:     { zoomOnClick: true,  flickEnabled: false, flickMinSpeed: 20, flickMomentum: 0.40 },
+            //zoomPerClick:           2,
+            //zoomPerScroll:          1.2,
             tileSources: tileSources
         });
     </script>
