@@ -1,6 +1,6 @@
 //! OpenSeadragon 1.0.0
-//! Built on 2014-04-15
-//! Git commit: v1.0.0-147-gc2e7b37
+//! Built on 2014-04-17
+//! Git commit: v1.0.0-148-g8e119d6
 //! http://openseadragon.github.io
 //! License: http://openseadragon.github.io/license/
 
@@ -4775,7 +4775,7 @@ $.EventSource.prototype = /** @lends OpenSeadragon.EventSource.prototype */{
                         position:             getPointRelativeToAbsolute( curGPoint.currentPos, tracker.element ),
                         buttons:              pointsList.buttons,
                         insideElementPressed: curGPoint.insideElementPressed,
-                        buttonDownAny:        pointsList.buttons !== 0,// IS_BUTTON_DOWN, *deprecated*
+                        buttonDownAny:        pointsList.buttons !== 0,
                         isTouchEvent:         curGPoint.type === 'touch',
                         originalEvent:        event,
                         preventDefaultAction: false,
@@ -4838,7 +4838,7 @@ $.EventSource.prototype = /** @lends OpenSeadragon.EventSource.prototype */{
                         position:             getPointRelativeToAbsolute( curGPoint.currentPos, tracker.element ),
                         buttons:              pointsList.buttons,
                         insideElementPressed: updateGPoint ? updateGPoint.insideElementPressed : false,
-                        buttonDownAny:        pointsList.buttons !== 0,// IS_BUTTON_DOWN, *deprecated*
+                        buttonDownAny:        pointsList.buttons !== 0,
                         isTouchEvent:         curGPoint.type === 'touch',
                         originalEvent:        event,
                         preventDefaultAction: false,
