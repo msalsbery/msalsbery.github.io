@@ -1,6 +1,6 @@
 //! OpenSeadragon 1.0.0
-//! Built on 2014-04-18
-//! Git commit: v1.0.0-149-g7ae0452
+//! Built on 2014-04-20
+//! Git commit: v1.0.0-149-g7ae0452-dirty
 //! http://openseadragon.github.io
 //! License: http://openseadragon.github.io/license/
 
@@ -4417,7 +4417,7 @@ $.EventSource.prototype = /** @lends OpenSeadragon.EventSource.prototype */{
             // Touch event model start, end, and move events are always captured so we don't need to capture explicitly
         }
 
-        $.stopEvent( event );
+        //$.stopEvent( event );
         $.cancelEvent( event );
     }
 
@@ -4453,7 +4453,7 @@ $.EventSource.prototype = /** @lends OpenSeadragon.EventSource.prototype */{
             updatePointersExit( tracker, event, gPoints );
         }
 
-        $.stopEvent( event );
+        //$.stopEvent( event );
         $.cancelEvent( event );
     }
 
@@ -4479,7 +4479,7 @@ $.EventSource.prototype = /** @lends OpenSeadragon.EventSource.prototype */{
 
         updatePointersMove( tracker, event, gPoints );
 
-        $.stopEvent( event );
+        //$.stopEvent( event );
         $.cancelEvent( event );
     }
 
