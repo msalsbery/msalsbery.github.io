@@ -9,12 +9,7 @@
 
 <body>
 
-    <div class="viewer-box">
-        <div class="viewer-container">
-            <div id="osd1" class="openseadragon1"></div>
-        </div>
-    </div>
-
+    <div id="osd1" class="openseadragon1"></div>
 
     <script type="text/javascript">
         var tileSourcesPrefix = '../openseadragonimaging/data/',
@@ -28,7 +23,8 @@
                     width: 1909,
                     height: 1331
                 }])
-            ];
+            ], 
+            el = document.getElementsByClassName('');
 
         OpenSeadragon({
             id: 'osd1',
