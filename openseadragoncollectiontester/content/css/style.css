@@ -1,0 +1,52 @@
+﻿body
+{
+}
+
+code
+{
+    overflow: auto;
+    font-size: 0.8em;
+}
+
+.viewer-box
+{
+    margin: 10px;
+    padding: 0px;
+}
+
+.viewer-description
+{
+    font-weight:bold;
+}
+
+.viewer-container
+{
+    margin: 0;
+    padding: 0;
+}
+
+.navigator-box
+{
+    overflow: hidden;
+    margin: 0 auto 4px auto;
+    padding: 0px;
+    width: 150px;
+    height: 100px;
+    border: 2px solid #cccccc;
+    background-color: #eeeeee;
+}
+
+.navigator-div
+{
+    margin: 0px;
+    padding: 0px;
+    width: 100%;
+    height: 100%;
+}
+
+
+.openseadragon1 
+{
+    height: 700px;
+    background-color: Black;
+}

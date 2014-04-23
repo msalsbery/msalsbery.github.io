@@ -1,0 +1,68 @@
+﻿<!DOCTYPE html>
+<html>
+
+<head>
+    <title>OpenSeadragon Collection Tester</title>
+    <script type="text/javascript" src='scripts/openseadragon.js'></script>
+    <link rel="stylesheet" type="text/css" href="content/css/style.css" />
+</head>
+
+<body>
+
+    <div class="viewer-box">
+        <div class="viewer-container">
+            <div id="osd1" class="openseadragon1"></div>
+        </div>
+    </div>
+
+
+    <script type="text/javascript">
+        var tileSourcesPrefix = '../openseadragonimaging/data/',
+        //var tileSourcesPrefix = '/media/openseadragonsamples/',
+            tileSources = [
+                tileSourcesPrefix + 'testpattern.dzi',
+                //tileSourcesPrefix + 'tall.dzi',
+                //tileSourcesPrefix + 'wide.dzi',
+                new OpenSeadragon.LegacyTileSource([{
+                    url: tileSourcesPrefix + 'dog_radiograph_2.jpg',
+                    width: 1909,
+                    height: 1331
+                }])
+            ];
+
+        OpenSeadragon({
+            id: 'osd1',
+            prefixUrl: 'content/images/openseadragon/',
+            debugMode: true,
+            useCanvas: true,
+            collectionMode: true,
+            collectionRows: 1, 
+            collectionTileSize: 2048,//1024,
+            collectionTileMargin: 25,
+            showNavigationControl: true,
+            //showReferenceStrip: true,
+            navigationControlAnchor: OpenSeadragon.ControlAnchor.TOP_LEFT,
+            showSequenceControl: false,
+            sequenceControlAnchor: OpenSeadragon.ControlAnchor.TOP_LEFT,
+            //showNavigator: true,
+            //navigatorPosition: OpenSeadragon.ControlAnchor.TOP_RIGHT,
+            visibilityRatio: 0.25,
+            minZoomLevel: 0.05,
+            maxZoomLevel: 10,
+            //clickTimeThreshold:     300,
+            //clickDistThreshold:     5,
+            //springStiffness:        6.5,
+            //animationTime:          1.2,
+            gestureSettingsMouse:   { scrollToZoom: true,  clickToZoom: false,  dblClickToZoom: true, pinchToZoom: false, flickEnabled: false, flickMinSpeed: 120, flickMomentum: 0.25 },
+            //gestureSettingsTouch:   { scrollToZoom: false, clickToZoom: false, dblClickToZoom: true,  pinchToZoom: true,  flickEnabled: true,  flickMinSpeed: 120, flickMomentum: 0.25 },
+            //gestureSettingsPen:     { scrollToZoom: false, clickToZoom: true,  dblClickToZoom: false, pinchToZoom: false, flickEnabled: false, flickMinSpeed: 120, flickMomentum: 0.25 },
+            //gestureSettingsUnknown: { scrollToZoom: false, clickToZoom: false, dblClickToZoom: true,  pinchToZoom: true,  flickEnabled: true,  flickMinSpeed: 120, flickMomentum: 0.25 },
+            //zoomPerClick:           2,
+            //zoomPerScroll:          1.2,
+            tileSources: tileSources
+        });
+    </script>
+
+</body>
+
+</html>
