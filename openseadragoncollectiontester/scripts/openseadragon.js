@@ -15019,18 +15019,18 @@ function drawTiles( drawer, lastDrawn ){
                         ]
                     });
 
-                    //TODO: IE seems to barf on this, not sure if its just the border
-                    //      but we probably need to clear this up with a better
-                    //      test of support for various css features
-                    if( SUBPIXEL_RENDERING ){
-                        viewer.element.style.border = '1px solid rgba(255,255,255,0.38)';
-                        viewer.element.style['-webkit-box-reflect'] =
-                            'below 0px -webkit-gradient('+
-                                'linear,left '+
-                                'top,left '+
-                                'bottom,from(transparent),color-stop(62%,transparent),to(rgba(255,255,255,0.62))'+
-                            ')';
-                    }
+                    ////TODO: IE seems to barf on this, not sure if its just the border
+                    ////      but we probably need to clear this up with a better
+                    ////      test of support for various css features
+                    //if( SUBPIXEL_RENDERING ){
+                    //    viewer.element.style.border = '1px solid rgba(255,255,255,0.38)';
+                    //    viewer.element.style['-webkit-box-reflect'] =
+                    //        'below 0px -webkit-gradient('+
+                    //            'linear,left '+
+                    //            'top,left '+
+                    //            'bottom,from(transparent),color-stop(62%,transparent),to(rgba(255,255,255,0.62))'+
+                    //        ')';
+                    //}
 
                     drawer.viewer.addOverlay(
                         viewer.element,
