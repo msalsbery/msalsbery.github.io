@@ -11,12 +11,7 @@
 
 <body>
 
-    <div class="viewer-box">
-        <div class="viewer-container">
-            <div id="osd1" class="openseadragon1"></div>
-        </div>
-    </div>
-
+    <div id="osd1" class="openseadragon1"></div>
 
     <script type="text/javascript">
         var tileSourcesPrefix = '../openseadragonimaging/data/',
@@ -37,6 +32,7 @@
         OpenSeadragon({
             id: 'osd1',
             prefixUrl: 'content/images/openseadragon/',
+            debugMode: false,
             useCanvas: true,
             showNavigationControl: true,
             //showReferenceStrip: true,
@@ -52,10 +48,10 @@
             //clickDistThreshold:     5,
             //springStiffness:        6.5,
             //animationTime:          1.2,
-            //gestureSettingsMouse:   { scrollToZoom: true,  clickToZoom: true,  pinchToZoom: false, flickEnabled: false, flickMinSpeed: 120, flickMomentum: 0.25 },
-            //gestureSettingsTouch:   { scrollToZoom: false, clickToZoom: false, pinchToZoom: true,  flickEnabled: true,  flickMinSpeed: 120, flickMomentum: 0.25 },
-            //gestureSettingsPen:     { scrollToZoom: false, clickToZoom: true,  pinchToZoom: false, flickEnabled: false, flickMinSpeed: 120, flickMomentum: 0.25 },
-            //gestureSettingsUnknown: { scrollToZoom: false, clickToZoom: false, pinchToZoom: true,  flickEnabled: true,  flickMinSpeed: 120, flickMomentum: 0.25 },
+            gestureSettingsMouse:   { scrollToZoom: true,  clickToZoom: false,  dblClickToZoom: true, pinchToZoom: false, flickEnabled: false, flickMinSpeed: 120, flickMomentum: 0.25 },
+            //gestureSettingsTouch:   { scrollToZoom: false, clickToZoom: false, dblClickToZoom: true,  pinchToZoom: true,  flickEnabled: true,  flickMinSpeed: 120, flickMomentum: 0.25 },
+            //gestureSettingsPen:     { scrollToZoom: false, clickToZoom: true,  dblClickToZoom: false, pinchToZoom: false, flickEnabled: false, flickMinSpeed: 120, flickMomentum: 0.25 },
+            //gestureSettingsUnknown: { scrollToZoom: false, clickToZoom: false, dblClickToZoom: true,  pinchToZoom: true,  flickEnabled: true,  flickMinSpeed: 120, flickMomentum: 0.25 },
             //zoomPerClick:           2,
             //zoomPerScroll:          1.2,
             tileSources: tileSources

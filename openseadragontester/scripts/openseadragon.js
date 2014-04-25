@@ -1,6 +1,6 @@
 //! OpenSeadragon 1.0.0
-//! Built on 2014-04-21
-//! Git commit: v1.0.0-151-g765df51
+//! Built on 2014-04-25
+//! Git commit: v1.0.0-161-gc0a3333
 //! http://openseadragon.github.io
 //! License: http://openseadragon.github.io/license/
 
@@ -1808,38 +1808,64 @@ window.OpenSeadragon = window.OpenSeadragon || function( options ){
             return value ? value : null;
         },
 
-
-        createAjaxRequest: function(){
-            var request;
-
-            if ( window.XMLHttpRequest ) {
-                $.createAjaxRequest = function( ){
-                    return new XMLHttpRequest();
-                };
-                request = new XMLHttpRequest();
-            } else if ( window.ActiveXObject ) {
-                /*jshint loopfunc:true*/
-                /* global ActiveXObject:true */
-                for ( var i = 0; i < ACTIVEX.length; i++ ) {
-                    try {
-                        request = new ActiveXObject( ACTIVEX[ i ] );
-                        $.createAjaxRequest = function( ){
-                            return new ActiveXObject( ACTIVEX[ i ] );
-                        };
-                        break;
-                    } catch (e) {
-                        continue;
-                    }
-                }
+        /**
+         * Retrieves the protocol used by the url. The url can either be absolute
+         * or relative.
+         * @function
+         * @private
+         * @param {String} url The url to retrieve the protocol from.
+         * @return {String} The protocol (http:, https:, file:, ftp: ...)
+         */
+        getUrlProtocol: function( url ) {
+            var match = url.match(/^([a-z]+:)\/\//i);
+            if ( match === null ) {
+                // Relative URL, retrive the protocol from window.location
+                return window.location.protocol;
             }
-
-            if ( !request ) {
-                throw new Error( "Browser doesn't support XMLHttpRequest." );
-            }
-
-            return request;
+            return match[1].toLowerCase();
         },
 
+        /**
+         * Create an XHR object
+         * @private
+         * @param {type} [local] If set to true, the XHR will be file: protocol
+         * compatible if possible (but may raise a warning in the browser).
+         * @returns {XMLHttpRequest}
+         */
+        createAjaxRequest: function( local ) {
+            // IE11 does not support window.ActiveXObject so we just try to
+            // create one to see if it is supported.
+            // See: http://msdn.microsoft.com/en-us/library/ie/dn423948%28v=vs.85%29.aspx
+            var supportActiveX;
+            try {
+                /* global ActiveXObject:true */
+                supportActiveX = !!new ActiveXObject( "Microsoft.XMLHTTP" );
+            } catch( e ) {
+                supportActiveX = false;
+            }
+
+            if ( supportActiveX ) {
+                if ( window.XMLHttpRequest ) {
+                    $.createAjaxRequest = function( local ) {
+                        if ( local ) {
+                            return new ActiveXObject( "Microsoft.XMLHTTP" );
+                        }
+                        return new XMLHttpRequest();
+                    };
+                } else {
+                    $.createAjaxRequest = function() {
+                        return new ActiveXObject( "Microsoft.XMLHTTP" );
+                    };
+                }
+            } else if ( window.XMLHttpRequest ) {
+                $.createAjaxRequest = function() {
+                    return new XMLHttpRequest();
+                };
+            } else {
+                throw new Error( "Browser doesn't support XMLHttpRequest." );
+            }
+            return $.createAjaxRequest( local );
+        },
 
         /**
          * Makes an AJAX request.
@@ -1850,7 +1876,8 @@ window.OpenSeadragon = window.OpenSeadragon || function( options ){
          * @throws {Error}
          */
         makeAjaxRequest: function( url, onSuccess, onError ) {
-            var request = $.createAjaxRequest();
+            var protocol = $.getUrlProtocol( url );
+            var request = $.createAjaxRequest( protocol === "file:" );
 
             if ( !$.isFunction( onSuccess ) ) {
                 throw new Error( "makeAjaxRequest requires a success callback" );
@@ -1861,10 +1888,12 @@ window.OpenSeadragon = window.OpenSeadragon || function( options ){
                 if ( request.readyState == 4 ) {
                     request.onreadystatechange = function(){};
 
-                    if ( request.status == 200 ) {
+                    var successStatus =
+                        protocol === "http:" || protocol === "https:" ? 200 : 0;
+                    if ( request.status === successStatus ) {
                         onSuccess( request );
                     } else {
-                        $.console.log( "AJAX request returned %s: %s", request.status, url );
+                        $.console.log( "AJAX request returned %d: %s", request.status, url );
 
                         if ( $.isFunction( onError ) ) {
                             onError( request );
@@ -2001,28 +2030,25 @@ window.OpenSeadragon = window.OpenSeadragon || function( options ){
          * @returns {Document}
          */
         parseXml: function( string ) {
-            //TODO: yet another example where we can determine the correct
-            //      implementation once at start-up instead of everytime we use
-            //      the function. DONE.
-            if ( window.ActiveXObject ) {
+            if ( window.DOMParser ) {
 
-                $.parseXml = function( string ){
-                    var xmlDoc = null;
-
-                    xmlDoc = new ActiveXObject( "Microsoft.XMLDOM" );
-                    xmlDoc.async = false;
-                    xmlDoc.loadXML( string );
-                    return xmlDoc;
-                };
-
-            } else if ( window.DOMParser ) {
-
-                $.parseXml = function( string ){
+                $.parseXml = function( string ) {
                     var xmlDoc = null,
                         parser;
 
                     parser = new DOMParser();
                     xmlDoc = parser.parseFromString( string, "text/xml" );
+                    return xmlDoc;
+                };
+
+            } else if ( window.ActiveXObject ) {
+
+                $.parseXml = function( string ) {
+                    var xmlDoc = null;
+
+                    xmlDoc = new ActiveXObject( "Microsoft.XMLDOM" );
+                    xmlDoc.async = false;
+                    xmlDoc.loadXML( string );
                     return xmlDoc;
                 };
 
@@ -2066,12 +2092,7 @@ window.OpenSeadragon = window.OpenSeadragon || function( options ){
     };
 
 
-    var ACTIVEX = [
-            "Msxml2.XMLHTTP",
-            "Msxml3.XMLHTTP",
-            "Microsoft.XMLHTTP"
-        ],
-        FILEFORMATS = {
+    var FILEFORMATS = {
             "bmp":  false,
             "jpeg": true,
             "jpg":  true,
@@ -6217,6 +6238,7 @@ $.Viewer = function( options ) {
         clickDistThreshold: this.clickDistThreshold,
         enterHandler:       $.delegate( this, onContainerEnter ),
         exitHandler:        $.delegate( this, onContainerExit ),
+        pressHandler:       $.delegate( this, onContainerPress ),
         releaseHandler:     $.delegate( this, onContainerRelease )
     }).setTracking( this.mouseNavEnabled ? true : false ); // always tracking
 
@@ -8313,8 +8335,15 @@ function onContainerExit( event ) {
     });
 }
 
+function onContainerPress( event ) {
+    if ( event.pointerType === 'touch' && !$.MouseTracker.haveTouchEnter ) {
+        THIS[ this.hash ].mouseInside = true;
+        abortControlsAutoHide( this );
+    }
+}
+
 function onContainerRelease( event ) {
-    if ( !event.insideElementReleased ) {
+    if ( !event.insideElementReleased || ( event.pointerType === 'touch' && !$.MouseTracker.haveTouchEnter ) ) {
         THIS[ this.hash ].mouseInside = false;
         if ( !THIS[ this.hash ].animating ) {
             beginControlsAutoHide( this );
@@ -12179,9 +12208,17 @@ $.ButtonGroup = function( options ) {
                 }
             }
         },
+        pressHandler: function ( event ) {
+            if ( event.pointerType === 'touch' && !$.MouseTracker.haveTouchEnter ) {
+                var i;
+                for ( i = 0; i < _this.buttons.length; i++ ) {
+                    _this.buttons[ i ].notifyGroupEnter();
+                }
+            }
+        },
         releaseHandler: function ( event ) {
             var i;
-            if ( !event.insideElementReleased ) {
+            if ( !event.insideElementReleased || ( event.pointerType === 'touch' && !$.MouseTracker.haveTouchEnter ) ) {
                 for ( i = 0; i < _this.buttons.length; i++ ) {
                     _this.buttons[ i ].notifyGroupExit();
                 }
