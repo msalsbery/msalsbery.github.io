@@ -1,0 +1,24 @@
+        [JsonObject("team")]
+        public class Team
+        {
+            [JsonProperty("international_date")]
+            public bool InternationalDate { get; set; }
+
+            [JsonProperty("is_coed")]
+            public bool IsCoed { get; set; }
+
+            [JsonProperty("team_name")]
+            public string TeamName { get; set; }
+        }
+
+        public class TeamObject
+        {
+            [JsonProperty("team")]
+            public Team Team { get; set; }
+        }
+
+
+    string data = "[{team: {international_date: false,is_coed: false,team_name: \"foo bar\"}},{team: {international_date: false,is_coed: false,team_name: \"foo bar\"}}]";
+
+    List<TeamObject> teams = (List<TeamObject>)Newtonsoft.Json.JsonConvert.DeserializeObject<List<TeamObject>>(data);
+

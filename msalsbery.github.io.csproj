@@ -20,6 +20,10 @@
     <UpgradeBackupLocation>
     </UpgradeBackupLocation>
     <OldToolsVersion>4.0</OldToolsVersion>
+    <IISExpressSSLPort />
+    <IISExpressAnonymousAuthentication />
+    <IISExpressWindowsAuthentication />
+    <IISExpressUseClassicPipelineMode />
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <DebugSymbols>true</DebugSymbols>
@@ -41,10 +45,18 @@
   <ItemGroup>
     <Content Include="content\css\pygment_trac.css" />
     <Content Include="content\css\stylesheet.css" />
+    <Content Include="content\images\bg.png" />
     <Content Include="content\images\bg_hr.png" />
     <Content Include="content\images\blacktocat.png" />
+    <Content Include="content\images\email.png" />
+    <Content Include="content\images\email_sm.png" />
+    <Content Include="content\images\facebook.png" />
+    <Content Include="content\images\facebook_sm.png" />
+    <Content Include="content\images\GitHub-Mark-64px.png" />
     <Content Include="content\images\icon_download.png" />
     <Content Include="content\images\sprite_download.png" />
+    <Content Include="content\images\twitter.png" />
+    <Content Include="content\images\twitter_sm.png" />
     <Content Include="index.html" />
     <Content Include="scripts\main.js" />
     <Content Include="Web.config" />
