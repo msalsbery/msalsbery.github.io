@@ -30,6 +30,10 @@ time, mark, audio, video {
   background: #022330;
 }
 
+b, dl, dt, dd, ol, ul, li {
+  background: #f2f2f2;
+}
+
 /* HTML5 display-role reset for older browsers */
 article, aside, details, figcaption, figure,
 footer, header, hgroup, menu, nav, section {
@@ -292,10 +296,16 @@ Full-Width Styles
   border-bottom-right-radius: 2px;
 }
 
-#email_link {
-    width:  48px;
+.contact-link {
+    margin-left:1.5em;
+    vertical-align:middle;
+}
+
+.contact-link-img {
+    width: 48px;
     height: 48px;
-    background: url('../images/email_sm.png') #0090ff no-repeat;
+    background: #f2f2f2;
+    vertical-align:middle;
 }
 
 #header_wrap {
@@ -437,6 +447,13 @@ Small Device Styles
     min-width: 320px;
     max-width: 480px;
     font-size: 11px;
+  }
+
+  .contact-link-img {
+    width: 48px;
+    height: 48px;
+    background: #f2f2f2;
+    vertical-align:middle;
   }
 
 }
