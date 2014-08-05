@@ -2960,28 +2960,28 @@ $.EventSource.prototype = /** @lends OpenSeadragon.EventSource.prototype */{
          * @member {Number} clickTimeThreshold
          * @memberof OpenSeadragon.MouseTracker#
          */
-        this.clickTimeThreshold = options.clickTimeThreshold;
+        this.clickTimeThreshold = options.clickTimeThreshold || $.DEFAULT_SETTINGS.clickTimeThreshold;
         /**
          * The maximum distance allowed between a pointer down event and a pointer up event
          * to be treated as a click gesture.
          * @member {Number} clickDistThreshold
          * @memberof OpenSeadragon.MouseTracker#
          */
-        this.clickDistThreshold = options.clickDistThreshold;
+        this.clickDistThreshold = options.clickDistThreshold || $.DEFAULT_SETTINGS.clickDistThreshold;
         /**
          * The number of milliseconds within which two pointer down-up event combinations
          * will be treated as a double-click gesture.
          * @member {Number} dblClickTimeThreshold
          * @memberof OpenSeadragon.MouseTracker#
          */
-        this.dblClickTimeThreshold = options.dblClickTimeThreshold;
+        this.dblClickTimeThreshold = options.dblClickTimeThreshold || $.DEFAULT_SETTINGS.dblClickTimeThreshold;
         /**
          * The maximum distance allowed between two pointer click events
          * to be treated as a click gesture.
          * @member {Number} clickDistThreshold
          * @memberof OpenSeadragon.MouseTracker#
          */
-        this.dblClickDistThreshold = options.dblClickDistThreshold;
+        this.dblClickDistThreshold = options.dblClickDistThreshold || $.DEFAULT_SETTINGS.dblClickDistThreshold;
         this.userData           = options.userData        || null;
         this.stopDelay          = options.stopDelay       || 50;
 
@@ -9293,17 +9293,9 @@ $.extend( $.Navigator.prototype, $.EventSource.prototype, $.Viewer.prototype, /*
  * @function
  */
 function onCanvasClick( event ) {
-    var newBounds,
-        viewerPosition,
-        dimensions;
-    if (! this.drag) {
-        if ( this.viewer.viewport ) {
-            this.viewer.viewport.panTo( this.viewport.pointFromPixel( event.position ) );
-            this.viewer.viewport.applyConstraints();
-        }
-    }
-    else {
-        this.drag = false;
+    if ( event.quick && this.viewer.viewport ) {
+        this.viewer.viewport.panTo( this.viewport.pointFromPixel( event.position ) );
+        this.viewer.viewport.applyConstraints();
     }
 }
 
@@ -9314,7 +9306,6 @@ function onCanvasClick( event ) {
  */
 function onCanvasDrag( event ) {
     if ( this.viewer.viewport ) {
-        this.drag = true;
         if( !this.panHorizontal ){
             event.delta.x = 0;
         }
