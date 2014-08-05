@@ -1,6 +1,6 @@
-//! OpenSeadragon 1.0.0
-//! Built on 2014-04-30
-//! Git commit: v1.0.0-171-gaf38366
+//! OpenSeadragon 1.1.1
+//! Built on 2014-08-04
+//! Git commit: v1.1.1-3-g975828c-dirty
 //! http://openseadragon.github.io
 //! License: http://openseadragon.github.io/license/
 
@@ -89,7 +89,7 @@
 
 
 /**
- * @version  OpenSeadragon 1.0.0
+ * @version  OpenSeadragon 1.1.1
  *
  * @file
  * <h2><strong>OpenSeadragon - Javascript Deep Zooming</strong></h2>
@@ -664,10 +664,10 @@ window.OpenSeadragon = window.OpenSeadragon || function( options ){
      */
     /* jshint ignore:start */
     $.version = {
-        versionStr: '1.0.0',
+        versionStr: '1.1.1',
         major: 1,
-        minor: 0,
-        revision: 0
+        minor: 1,
+        revision: 1
     };
     /* jshint ignore:end */
 
@@ -2167,7 +2167,7 @@ window.OpenSeadragon = window.OpenSeadragon || function( options ){
                             )
                         );
                     } else {
-                        regex = new RegExp( "Trident/.*rv:([0-9]{1,}[.0-9]{0,}) ");
+                        regex = new RegExp( "Trident/.*rv:([0-9]{1,}[.0-9]{0,})");
                         if ( regex.exec( ua ) !== null ) {
                             $.Browser.vendor = $.BROWSERS.IE;
                             $.Browser.version = parseFloat( RegExp.$1 );
@@ -3014,8 +3014,6 @@ $.EventSource.prototype = /** @lends OpenSeadragon.EventSource.prototype */{
          *      Are we curruently capturing mouse events (legacy mouse events only).
          */
         THIS[ this.hash ] = {
-            setCaptureCapable:     !!this.element.setCapture && !!this.element.releaseCapture,
-
             click:                 function ( event ) { onClick( _this, event ); },
             dblclick:              function ( event ) { onDblClick( _this, event ); },
             keypress:              function ( event ) { onKeyPress( _this, event ); },
@@ -3047,6 +3045,10 @@ $.EventSource.prototype = /** @lends OpenSeadragon.EventSource.prototype */{
             gesturestart:          function ( event ) { onGestureStart( _this, event ); },
             gesturechange:         function ( event ) { onGestureChange( _this, event ); },
 
+            pointerover:           function ( event ) { onPointerOver( _this, event ); },
+            MSPointerOver:         function ( event ) { onPointerOver( _this, event ); },
+            pointerout:            function ( event ) { onPointerOut( _this, event ); },
+            MSPointerOut:          function ( event ) { onPointerOut( _this, event ); },
             pointerenter:          function ( event ) { onPointerEnter( _this, event ); },
             MSPointerEnter:        function ( event ) { onPointerEnter( _this, event ); },
             pointerleave:          function ( event ) { onPointerLeave( _this, event ); },
@@ -3059,6 +3061,8 @@ $.EventSource.prototype = /** @lends OpenSeadragon.EventSource.prototype */{
             MSPointerMove:         function ( event ) { onPointerMove( _this, event ); },
             pointercancel:         function ( event ) { onPointerCancel( _this, event ); },
             MSPointerCancel:       function ( event ) { onPointerCancel( _this, event ); },
+            pointerupcaptured:     function ( event ) { onPointerUpCaptured( _this, event ); },
+            pointermovecaptured:   function ( event ) { onPointerMoveCaptured( _this, event ); },
 
             tracking:              false,
 
@@ -3636,6 +3640,14 @@ $.EventSource.prototype = /** @lends OpenSeadragon.EventSource.prototype */{
                                     'DOMMouseScroll';                                                        // Assume old Firefox
 
     /**
+     * Detect legacy mouse capture support.
+     */
+    $.MouseTracker.supportsMouseCapture = (function () {
+        var divElement = document.createElement( 'div' );
+        return $.isFunction( divElement.setCapture ) && $.isFunction( divElement.releaseCapture );
+    }());
+
+    /**
      * Detect browser pointer device event model(s) and build appropriate list of events to subscribe to.
      */
     $.MouseTracker.subscribeEvents = [ "click", "dblclick", "keypress", "focus", "blur", $.MouseTracker.wheelEventName ];
@@ -3646,37 +3658,41 @@ $.EventSource.prototype = /** @lends OpenSeadragon.EventSource.prototype */{
     }
 
     if ( window.PointerEvent ) {
+        $.console.log('***** Pointer Event Model');
         // IE11 and other W3C Pointer Event implementations (see http://www.w3.org/TR/pointerevents)
-        $.MouseTracker.subscribeEvents.push( "pointerenter", "pointerleave", "pointerdown", "pointerup", "pointermove", "pointercancel" );
+        $.MouseTracker.subscribeEvents.push( "pointerover", "pointerout", "pointerdown", "pointerup", "pointermove", "pointercancel" );
         $.MouseTracker.unprefixedPointerEvents = true;
         if( navigator.maxTouchPoints ) {
             $.MouseTracker.maxTouchPoints = navigator.maxTouchPoints;
         } else {
             $.MouseTracker.maxTouchPoints = 0;
         }
-        $.MouseTracker.haveTouchEnter = true;
-        $.MouseTracker.haveMouseEnter = true;
+        $.MouseTracker.haveTouchEnter = false;
+        $.MouseTracker.haveMouseEnter = false;
     } else if ( window.MSPointerEvent ) {
+        $.console.log('***** Pointer Event Model (Prefixed IE10)');
         // IE10
-        $.MouseTracker.subscribeEvents.push( "MSPointerEnter", "MSPointerLeave", "MSPointerDown", "MSPointerUp", "MSPointerMove", "MSPointerCancel" );
+        $.MouseTracker.subscribeEvents.push( "MSPointerOver", "MSPointerOut", "MSPointerDown", "MSPointerUp", "MSPointerMove", "MSPointerCancel" );
         $.MouseTracker.unprefixedPointerEvents = false;
         if( navigator.msMaxTouchPoints ) {
             $.MouseTracker.maxTouchPoints = navigator.msMaxTouchPoints;
         } else {
             $.MouseTracker.maxTouchPoints = 0;
         }
-        $.MouseTracker.haveTouchEnter = true;
-        $.MouseTracker.haveMouseEnter = true;
+        $.MouseTracker.haveTouchEnter = false;
+        $.MouseTracker.haveMouseEnter = false;
     } else {
+        $.console.log('***** Legacy Event Model');
         // Legacy W3C mouse events
+        // TODO: Favor mouseenter/mouseleave over mouseover/mouseout when Webkit browser support is better
         $.MouseTracker.subscribeEvents.push( "mousedown", "mouseup", "mousemove" );
-        if ( 'onmouseenter' in window ) {
-            $.MouseTracker.subscribeEvents.push( "mouseenter", "mouseleave" );
-            $.MouseTracker.haveMouseEnter = true;
-        } else {
+        //if ( $.Browser.vendor == $.BROWSERS.IE ) {
+        //    $.MouseTracker.subscribeEvents.push( "mouseenter", "mouseleave" );
+        //    $.MouseTracker.haveMouseEnter = true;
+        //} else {
             $.MouseTracker.subscribeEvents.push( "mouseover", "mouseout" );
             $.MouseTracker.haveMouseEnter = false;
-        }
+        //}
         if ( 'ontouchstart' in window ) {
             // iOS, Android, and other W3c Touch Event implementations (see http://www.w3.org/TR/2011/WD-touch-events-20110505)
             $.MouseTracker.subscribeEvents.push( "touchstart", "touchend", "touchmove", "touchcancel" );
@@ -3922,10 +3938,10 @@ $.EventSource.prototype = /** @lends OpenSeadragon.EventSource.prototype */{
         var delegate = THIS[ tracker.hash ];
 
         if ( !delegate.capturing ) {
-            if ( delegate.setCaptureCapable ) {
-                // IE<10, Firefox, other browsers with setCapture()/releaseCapture()
-                tracker.element.setCapture( true );
-            } else {
+//            if ( $.MouseTracker.supportsMouseCapture ) {
+//                // IE<10, Firefox, other browsers with setCapture()/releaseCapture()
+//                tracker.element.setCapture( true );
+//            } else {
                 // For browsers without setCapture()/releaseCapture(), we emulate mouse capture by hanging listeners on the window object.
                 //    (Note we listen on the capture phase so the captured handlers will get called first)
                 $.addEvent(
@@ -3940,7 +3956,7 @@ $.EventSource.prototype = /** @lends OpenSeadragon.EventSource.prototype */{
                     delegate.mousemovecaptured,
                     true
                 );
-            }
+//            }
             delegate.capturing = true;
         }
     }
@@ -3955,10 +3971,10 @@ $.EventSource.prototype = /** @lends OpenSeadragon.EventSource.prototype */{
         var delegate = THIS[ tracker.hash ];
 
         if ( delegate.capturing ) {
-            if ( delegate.setCaptureCapable ) {
-                // IE<10, Firefox, other browsers with setCapture()/releaseCapture()
-                tracker.element.releaseCapture();
-            } else {
+//            if ( $.MouseTracker.supportsMouseCapture ) {
+//                // IE<10, Firefox, other browsers with setCapture()/releaseCapture()
+//                tracker.element.releaseCapture();
+//            } else {
                 // For browsers without setCapture()/releaseCapture(), we emulate mouse capture by hanging listeners on the window object.
                 //    (Note we listen on the capture phase so the captured handlers will get called first)
                 $.removeEvent(
@@ -3973,7 +3989,7 @@ $.EventSource.prototype = /** @lends OpenSeadragon.EventSource.prototype */{
                     delegate.mouseupcaptured,
                     true
                 );
-            }
+//            }
             delegate.capturing = false;
         }
     }
@@ -4257,7 +4273,7 @@ $.EventSource.prototype = /** @lends OpenSeadragon.EventSource.prototype */{
 
         event = $.getEvent( event );
 
-        if ( this === event.relatedTarget || isParentChild( this, event.relatedTarget ) ) {
+        if ( isParentChild( event.currentTarget, event.relatedTarget ) ) {//this === event.relatedTarget || 
             return;
         }
 
@@ -4282,7 +4298,7 @@ $.EventSource.prototype = /** @lends OpenSeadragon.EventSource.prototype */{
 
         event = $.getEvent( event );
 
-        if ( this === event.relatedTarget || isParentChild( this, event.relatedTarget ) ) {
+        if ( isParentChild( event.currentTarget, event.relatedTarget ) ) {//this === event.relatedTarget || 
             return;
         }
 
@@ -4646,6 +4662,52 @@ $.EventSource.prototype = /** @lends OpenSeadragon.EventSource.prototype */{
      * @private
      * @inner
      */
+    function onPointerOver( tracker, event ) {
+        var gPoint;
+
+        if ( isParentChild( event.currentTarget, event.relatedTarget ) ) {//this === event.relatedTarget || 
+            return;
+        }
+
+        gPoint = {
+            id: event.pointerId,
+            type: getPointerType( event ),
+            isPrimary: event.isPrimary,
+            currentPos: getMouseAbsolute( event ),
+            currentTime: $.now()
+        };
+
+        updatePointersEnter( tracker, event, [ gPoint ] );
+    }
+
+
+    /**
+     * @private
+     * @inner
+     */
+    function onPointerOut( tracker, event ) {
+        var gPoint;
+
+        if ( isParentChild( event.currentTarget, event.relatedTarget ) ) {//this === event.relatedTarget || 
+            return;
+        }
+
+        gPoint = {
+            id: event.pointerId,
+            type: getPointerType( event ),
+            isPrimary: event.isPrimary,
+            currentPos: getMouseAbsolute( event ),
+            currentTime: $.now()
+        };
+
+        updatePointersExit( tracker, event, [ gPoint ] );
+    }
+
+
+    /**
+     * @private
+     * @inner
+     */
     function onPointerEnter( tracker, event ) {
         var gPoint;
 
@@ -4681,6 +4743,72 @@ $.EventSource.prototype = /** @lends OpenSeadragon.EventSource.prototype */{
 
 
     /**
+     * Begin capturing pointer events to the tracked element (pointer event model only).
+     * @private
+     * @inner
+     */
+    function capturePointer( tracker ) {
+        var delegate = THIS[ tracker.hash ];
+
+        if ( !delegate.capturing ) {
+//            if ( $.MouseTracker.supportsMouseCapture ) {
+//                // IE<10, Firefox, other browsers with setCapture()/releaseCapture()
+//                tracker.element.setCapture( true );
+//            } else {
+                // For browsers without setCapture()/releaseCapture(), we emulate mouse capture by hanging listeners on the window object.
+                //    (Note we listen on the capture phase so the captured handlers will get called first)
+                $.addEvent(
+                    window,
+                    $.MouseTracker.unprefixedPointerEvents ? 'pointerup' : 'MSPointerUp',
+                    delegate.pointerupcaptured,
+                    true
+                );
+                $.addEvent(
+                    window,
+                    $.MouseTracker.unprefixedPointerEvents ? 'pointermove' : 'MSPointerMove',
+                    delegate.pointermovecaptured,
+                    true
+                );
+//            }
+            delegate.capturing = true;
+        }
+    }
+
+
+    /**
+     * Stop capturing pointer events to the tracked element (pointer event model only).
+     * @private
+     * @inner
+     */
+    function releasePointer( tracker ) {
+        var delegate = THIS[ tracker.hash ];
+
+        if ( delegate.capturing ) {
+//            if ( $.MouseTracker.supportsMouseCapture ) {
+//                // IE<10, Firefox, other browsers with setCapture()/releaseCapture()
+//                tracker.element.releaseCapture();
+//            } else {
+                // For browsers without setCapture()/releaseCapture(), we emulate mouse capture by hanging listeners on the window object.
+                //    (Note we listen on the capture phase so the captured handlers will get called first)
+                $.removeEvent(
+                    window,
+                    $.MouseTracker.unprefixedPointerEvents ? 'pointermove' : 'MSPointerMove',
+                    delegate.pointermovecaptured,
+                    true
+                );
+                $.removeEvent(
+                    window,
+                    $.MouseTracker.unprefixedPointerEvents ? 'pointerup' : 'MSPointerUp',
+                    delegate.pointerupcaptured,
+                    true
+                );
+//            }
+            delegate.capturing = false;
+        }
+    }
+
+
+    /**
      * @private
      * @inner
      */
@@ -4696,11 +4824,12 @@ $.EventSource.prototype = /** @lends OpenSeadragon.EventSource.prototype */{
         };
 
         if ( updatePointersDown( tracker, event, [ gPoint ], event.button ) ) {
-            if ( $.MouseTracker.unprefixedPointerEvents ) {
-                event.currentTarget.setPointerCapture( event.pointerId );
-            } else {
-                event.currentTarget.msSetPointerCapture( event.pointerId );
-            }
+//            if ( $.MouseTracker.unprefixedPointerEvents ) {
+//                event.currentTarget.setPointerCapture( event.pointerId );
+//            } else {
+//                event.currentTarget.msSetPointerCapture( event.pointerId );
+//            }
+            capturePointer( tracker );
             $.stopEvent( event );
         }
 
@@ -4715,6 +4844,28 @@ $.EventSource.prototype = /** @lends OpenSeadragon.EventSource.prototype */{
      * @inner
      */
     function onPointerUp( tracker, event ) {
+        handlePointerUp( tracker, event );
+    }
+
+
+    /**
+     * This handler is attached to the window object (on the capture phase) to emulate mouse capture.
+     * onPointerUp is still attached to the tracked element, so stop propagation to avoid processing twice.
+     *
+     * @private
+     * @inner
+     */
+    function onPointerUpCaptured( tracker, event ) {
+        handlePointerUp( tracker, event );
+        $.stopEvent( event );
+    }
+
+
+    /**
+     * @private
+     * @inner
+     */
+    function handlePointerUp( tracker, event ) {
         var gPoint;
 
         gPoint = {
@@ -4726,11 +4877,13 @@ $.EventSource.prototype = /** @lends OpenSeadragon.EventSource.prototype */{
         };
 
         if ( updatePointersUp( tracker, event, [ gPoint ], event.button ) ) {
-            if ( $.MouseTracker.unprefixedPointerEvents ) {
-                event.currentTarget.releasePointerCapture( event.pointerId );
-            } else {
-                event.currentTarget.msReleasePointerCapture( event.pointerId );
-            }
+//            if ( $.MouseTracker.unprefixedPointerEvents ) {
+//                event.currentTarget.releasePointerCapture( event.pointerId );
+//            } else {
+//                event.currentTarget.msReleasePointerCapture( event.pointerId );
+//            }
+            releasePointer( tracker );
+//            $.stopEvent( event );
         }
     }
 
@@ -4740,6 +4893,28 @@ $.EventSource.prototype = /** @lends OpenSeadragon.EventSource.prototype */{
      * @inner
      */
     function onPointerMove( tracker, event ) {
+        handlePointerMove( tracker, event );
+    }
+
+
+    /**
+     * This handler is attached to the window object (on the capture phase) to emulate mouse capture.
+     * onPointerMove is still attached to the tracked element, so stop propagation to avoid processing twice.
+     *
+     * @private
+     * @inner
+     */
+    function onPointerMoveCaptured( tracker, event ) {
+        handlePointerMove( tracker, event );
+        $.stopEvent( event );
+    }
+
+
+    /**
+     * @private
+     * @inner
+     */
+    function handlePointerMove( tracker, event ) {
         // Pointer changed coordinates, button state, pressure, tilt, or contact geometry (e.g. width and height)
         var gPoint;
 
@@ -4803,6 +4978,7 @@ $.EventSource.prototype = /** @lends OpenSeadragon.EventSource.prototype */{
         gPoint.lastPos = gPoint.currentPos;
         gPoint.lastTime = gPoint.currentTime;
 
+//        $.console.log('startTrackingPointer() ', pointsList.getLength() + 1);
         return pointsList.add( gPoint );
     }
 
@@ -4838,6 +5014,7 @@ $.EventSource.prototype = /** @lends OpenSeadragon.EventSource.prototype */{
             listLength = pointsList.getLength();
         }
 
+//        $.console.log('stopTrackingPointer() ', listLength);
         return listLength;
     }
 
@@ -5052,6 +5229,7 @@ $.EventSource.prototype = /** @lends OpenSeadragon.EventSource.prototype */{
             }
 
             pointsList.contacts++;
+            $.console.log('contacts++ ', pointsList.contacts);
 
             if ( tracker.dragHandler || tracker.dragEndHandler || tracker.pinchHandler ) {
                 $.MouseTracker.gesturePointVelocityTracker.addPoint( tracker, curGPoint );
@@ -5178,6 +5356,7 @@ $.EventSource.prototype = /** @lends OpenSeadragon.EventSource.prototype */{
                     // Pointer was activated in our element but could have been removed in any element since events are captured to our element
 
                     pointsList.contacts--;
+                    $.console.log('contacts-- ', pointsList.contacts);
 
                     if ( tracker.dragHandler || tracker.dragEndHandler || tracker.pinchHandler ) {
                         $.MouseTracker.gesturePointVelocityTracker.removePoint( tracker, updateGPoint );
@@ -6246,10 +6425,10 @@ $.Viewer = function( options ) {
         style.top      = "0px";
         style.left     = "0px";
         // Disable browser default touch handling
-        if (style["touch-action"] !== undefined) {
-            style["touch-action"] = "none";
-        } else if (style["-ms-touch-action"] !== undefined) {
-            style["-ms-touch-action"] = "none";
+        if ( style[ "touch-action" ] !== undefined ) {
+            style[ "touch-action" ] = "none";
+        } else if ( style["-ms-touch-action"] !== undefined ) {
+            style[ "-ms-touch-action" ] = "none";
         }
     }(this.canvas.style));
 
@@ -8289,7 +8468,7 @@ function onCanvasDrag( event ) {
             event.delta.y = 0;
         }
         this.viewport.panBy( this.viewport.deltaPointsFromPixels( event.delta.negate() ), gestureSettings.flickEnabled );
-        if( this.constrainDuringPan && !gestureSettings.flickEnabled ){
+        if( this.constrainDuringPan ){
             this.viewport.applyConstraints();
         }
     }
@@ -8325,11 +8504,17 @@ function onCanvasDragEnd( event ) {
 
     if ( !event.preventDefaultAction && this.viewport ) {
         gestureSettings = this.gestureSettingsByDeviceType( event.pointerType );
-        if ( gestureSettings.flickEnabled && event.speed >= gestureSettings.flickMinSpeed && !event.preventDefaultAction && this.viewport ) {
+        if ( gestureSettings.flickEnabled && event.speed >= gestureSettings.flickMinSpeed ) {
             var amplitudeX = gestureSettings.flickMomentum * ( event.speed * Math.cos( event.direction ) ),
                 amplitudeY = gestureSettings.flickMomentum * ( event.speed * Math.sin( event.direction ) ),
                 center = this.viewport.pixelFromPoint( this.viewport.getCenter( true ) ),
                 target = this.viewport.pointFromPixel( new $.Point( center.x - amplitudeX, center.y - amplitudeY ) );
+            if( !this.panHorizontal ) {
+                target.x = center.x;
+            }
+            if( !this.panVertical ) {
+                target.y = center.y;
+            }
             this.viewport.panTo( target, false );
             this.viewport.applyConstraints();
         }
@@ -8393,15 +8578,25 @@ function onCanvasRelease( event ) {
 }
 
 function onCanvasPinch( event ) {
-    var gestureSettings;
+    var gestureSettings,
+        centerPt,
+        lastCenterPt,
+        panByPt;
 
     if ( !event.preventDefaultAction && this.viewport ) {
         gestureSettings = this.gestureSettingsByDeviceType( event.pointerType );
         if ( gestureSettings.pinchToZoom ) {
-            var centerPt = this.viewport.pointFromPixel( event.center, true ),
-                lastCenterPt = this.viewport.pointFromPixel( event.lastCenter, true );
+            centerPt = this.viewport.pointFromPixel( event.center, true );
+            lastCenterPt = this.viewport.pointFromPixel( event.lastCenter, true );
+            panByPt = lastCenterPt.minus( centerPt );
+            if( !this.panHorizontal ) {
+                panByPt.x = 0;
+            }
+            if( !this.panVertical ) {
+                panByPt.y = 0;
+            }
             this.viewport.zoomBy( event.distance / event.lastDistance, centerPt, true );
-            this.viewport.panBy( lastCenterPt.minus( centerPt ), true );
+            this.viewport.panBy( panByPt, true );
             this.viewport.applyConstraints();
         }
     }
@@ -8993,6 +9188,12 @@ $.Navigator = function( options ){
     });
 
     options.minPixelRatio = this.minPixelRatio = viewer.minPixelRatio;
+
+    if ( this.element.style[ "touch-action" ] !== undefined ) {
+        this.element.style[ "touch-action" ] = "none";
+    } else if ( this.element.style[ "-ms-touch-action" ] !== undefined ) {
+        this.element.style[ "-ms-touch-action" ] = "none";
+    }
 
     this.borderWidth = 2;
     //At some browser magnification levels the display regions lines up correctly, but at some there appears to
@@ -11907,6 +12108,11 @@ $.Button = function( options ) {
             this.tooltip;
 
         this.element.style.position = "relative";
+        if ( this.element.style[ "touch-action" ] !== undefined ) {
+            this.element.style[ "touch-action" ] = "none";
+        } else if ( this.element.style[ "-ms-touch-action" ] !== undefined ) {
+            this.element.style[ "-ms-touch-action" ] = "none";
+        }
 
         this.imgGroup.style.position =
         this.imgHover.style.position =
@@ -11977,6 +12183,7 @@ $.Button = function( options ) {
         clickDistThreshold: this.clickDistThreshold,
 
         enterHandler: function( event ) {
+            $.console.log('Enter ');// + event.currentTarget.className);
             if ( event.insideElementPressed ) {
                 inTo( _this, $.ButtonState.DOWN );
                 /**
@@ -12011,6 +12218,7 @@ $.Button = function( options ) {
         },
 
         exitHandler: function( event ) {
+            $.console.log('Exit ');// + event.currentTarget.className);
             outTo( _this, $.ButtonState.GROUP );
             if ( event.insideElementPressed ) {
                 /**
@@ -12356,6 +12564,12 @@ $.ButtonGroup = function( options ) {
         for ( i = 0; i < buttons.length; i++ ) {
             this.element.appendChild( buttons[ i ].element );
         }
+    }
+
+    if ( this.element.style[ "touch-action" ] !== undefined ) {
+        this.element.style[ "touch-action" ] = "none";
+    } else if ( this.element.style[ "-ms-touch-action" ] !== undefined ) {
+        this.element.style[ "-ms-touch-action" ] = "none";
     }
 
     /**
@@ -12796,6 +13010,12 @@ $.ReferenceStrip = function ( options ) {
     style.background    = '#000';
     style.position      = 'relative';
 
+    if ( this.element.style[ "touch-action" ] !== undefined ) {
+        this.element.style[ "touch-action" ] = "none";
+    } else if ( this.element.style[ "-ms-touch-action" ] !== undefined ) {
+        this.element.style[ "-ms-touch-action" ] = "none";
+    }
+
     $.setElementOpacity( this.element, 0.8 );
 
     this.viewer = viewer;
@@ -12871,6 +13091,11 @@ $.ReferenceStrip = function ( options ) {
         element.style.cssFloat      = 'left'; //Firefox
         element.style.styleFloat    = 'left'; //IE
         element.style.padding       = '2px';
+        if ( element.style[ "touch-action" ] !== undefined ) {
+            element.style[ "touch-action" ] = "none";
+        } else if ( element.style[ "-ms-touch-action" ] !== undefined ) {
+            element.style[ "-ms-touch-action" ] = "none";
+        }
 
         element.innerTracker = new $.MouseTracker( {
             element:            element,
@@ -13478,6 +13703,178 @@ function transform( stiffness, x ) {
 }
 
 }( OpenSeadragon ));
+
+/*
+ * OpenSeadragon - ImageLoader
+ *
+ * Copyright (C) 2009 CodePlex Foundation
+ * Copyright (C) 2010-2013 OpenSeadragon contributors
+ 
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions are
+ * met:
+ *
+ * - Redistributions of source code must retain the above copyright notice,
+ *   this list of conditions and the following disclaimer.
+ *
+ * - Redistributions in binary form must reproduce the above copyright
+ *   notice, this list of conditions and the following disclaimer in the
+ *   documentation and/or other materials provided with the distribution.
+ *
+ * - Neither the name of CodePlex Foundation nor the names of its
+ *   contributors may be used to endorse or promote products derived from
+ *   this software without specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+ * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+ * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+ * A PARTICULAR PURPOSE ARE DISCLAIMED.  IN NO EVENT SHALL THE COPYRIGHT
+ * OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+ * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED
+ * TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
+ * PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
+ * LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
+ * NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+ * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ */
+
+(function( $ ){
+
+/**
+ * @private
+ * @class ImageJob
+ * @classdesc Handles loading a single image for use in a single {@link OpenSeadragon.Tile}.
+ *
+ * @memberof OpenSeadragon
+ * @param {String} source - URL of image to download.
+ * @param {Function} callback - Called once image has finished downloading.
+ */
+function ImageJob ( options ) {
+    
+    $.extend( true, this, {
+        timeout:        $.DEFAULT_SETTINGS.timeout,
+        jobId:          null,
+    }, options );
+    
+    /**
+     * Image object which will contain downloaded image.
+     * @member {Image} image
+     * @memberof OpenSeadragon.ImageJob#
+     */
+    this.image = null;
+}
+
+ImageJob.prototype = {
+
+    /**
+     * Initiates downloading of associated image.
+     * @method
+     */
+    start: function(){
+        var _this = this;
+
+        this.image = new Image();
+
+        if ( _this.crossOriginPolicy !== false ) {
+            this.image.crossOrigin = this.crossOriginPolicy;
+        }
+
+        this.image.onload = function(){
+            _this.finish( true );
+        };
+        this.image.onabort = this.image.onerror = function(){
+            _this.finish( false );
+        };
+
+        this.jobId = window.setTimeout( function(){
+            _this.finish( false );
+        }, this.timeout);
+
+        this.image.src = this.src;
+    },
+
+    finish: function( successful ) {
+        this.image.onload = this.image.onerror = this.image.onabort = null;
+        if (!successful) {
+            this.image = null;
+        }
+
+        if ( this.jobId ) {
+            window.clearTimeout( this.jobId );
+        }
+
+        this.callback( this );
+    }
+
+};
+
+/**
+ * @class
+ * @classdesc Handles downloading of a set of images using asynchronous queue pattern.
+ */
+$.ImageLoader = function() {
+    
+    $.extend( true, this, {
+        jobLimit:       $.DEFAULT_SETTINGS.imageLoaderLimit,
+        jobQueue:       [],
+        jobsInProgress: 0
+    });
+
+};
+
+$.ImageLoader.prototype = {
+    
+    /**
+     * Add an unloaded image to the loader queue.
+     * @method
+     * @param {String} src - URL of image to download.
+     * @param {Function} callback - Called once image has been downloaded.
+     */
+    addJob: function( options ) {
+        var _this = this,
+            complete = function( job ) {
+                completeJob( _this, job, options.callback );
+            },
+            jobOptions = {
+                src: options.src,
+                callback: complete
+            },
+            newJob = new ImageJob( jobOptions );
+
+        if ( !this.jobLimit || this.jobsInProgress < this.jobLimit ) {
+            newJob.start();
+            this.jobsInProgress++;
+        }
+        else {
+           this.jobQueue.push( newJob );
+        }
+
+    }
+};
+
+/**
+ * Cleans up ImageJob once completed.
+ * @method
+ * @private
+ * @param loader - ImageLoader used to start job.
+ * @param job - The ImageJob that has completed.
+ * @param callback - Called once cleanup is finished.
+ */
+function completeJob( loader, job, callback ) {
+    var nextJob;
+
+    loader.jobsInProgress--;
+
+    if ( (!loader.jobLimit || loader.jobsInProgress < loader.jobLimit) && loader.jobQueue.length > 0) {
+        nextJob = loader.jobQueue.shift();
+        nextJob.start();
+    }
+
+    callback( job.image );
+}
+
+}( OpenSeadragon ));
+
 
 /*
  * OpenSeadragon - Tile
@@ -14202,7 +14599,7 @@ $.Drawer = function( options ) {
 
         //internal state properties
         viewer:         null,
-        downloading:    0,     // How many images are currently being loaded in parallel.
+        imageLoader:    new $.ImageLoader(),
         tilesMatrix:    {},    // A '3d' dictionary [level][x][y] --> Tile.
         tilesLoaded:    [],    // An unordered list of Tiles with loaded images.
         coverage:       {},    // A '3d' dictionary [level][x][y] --> Boolean.
@@ -14218,7 +14615,6 @@ $.Drawer = function( options ) {
         //configurable settings
         opacity:            $.DEFAULT_SETTINGS.opacity,
         maxImageCacheCount: $.DEFAULT_SETTINGS.maxImageCacheCount,
-        imageLoaderLimit:   $.DEFAULT_SETTINGS.imageLoaderLimit,
         minZoomImageRatio:  $.DEFAULT_SETTINGS.minZoomImageRatio,
         wrapHorizontal:     $.DEFAULT_SETTINGS.wrapHorizontal,
         wrapVertical:       $.DEFAULT_SETTINGS.wrapVertical,
@@ -14423,77 +14819,6 @@ $.Drawer.prototype = /** @lends OpenSeadragon.Drawer.prototype */{
     },
 
     /**
-     * Used internally to load images when required.  May also be used to
-     * preload a set of images so the browser will have them available in
-     * the local cache to optimize user experience in certain cases. Because
-     * the number of parallel image loads is configurable, if too many images
-     * are currently being loaded, the request will be ignored.  Since by
-     * default drawer.imageLoaderLimit is 0, the native browser parallel
-     * image loading policy will be used.
-     * @method
-     * @param {String} src - The url of the image to load.
-     * @param {Function} callback - The function that will be called with the
-     *      Image object as the only parameter if it was loaded successfully.
-     *      If an error occured, or the request timed out or was aborted,
-     *      the parameter is null instead.
-     * @return {Boolean} loading - Whether the request was submitted or ignored
-     *      based on OpenSeadragon.DEFAULT_SETTINGS.imageLoaderLimit.
-     */
-    loadImage: function( src, callback ) {
-        var _this = this,
-            loading = false,
-            image,
-            jobid,
-            complete;
-
-        if ( !this.imageLoaderLimit ||
-              this.downloading < this.imageLoaderLimit ) {
-
-            this.downloading++;
-
-            image = new Image();
-
-            if ( _this.crossOriginPolicy !== false ) {
-                image.crossOrigin = _this.crossOriginPolicy;
-            }
-
-            complete = function( imagesrc, resultingImage ){
-                _this.downloading--;
-                if (typeof ( callback ) == "function") {
-                    try {
-                        callback( resultingImage );
-                    } catch ( e ) {
-                        $.console.error(
-                            "%s while executing %s callback: %s",
-                            e.name,
-                            src,
-                            e.message,
-                            e
-                        );
-                    }
-                }
-            };
-
-            image.onload = function(){
-                finishLoadingImage( image, complete, true, jobid );
-            };
-
-            image.onabort = image.onerror = function(){
-                finishLoadingImage( image, complete, false, jobid );
-            };
-
-            jobid = window.setTimeout( function(){
-                finishLoadingImage( image, complete, false, jobid );
-            }, this.timeout );
-
-            loading   = true;
-            image.src = src;
-        }
-
-        return loading;
-    },
-
-    /**
      * Returns whether rotation is supported or not.
      * @method
      * @return {Boolean} True if rotation is supported.
@@ -14562,13 +14887,13 @@ function updateViewport( drawer ) {
         levelOpacity,
         levelVisibility;
 
-    //TODO
+    // Reset tile's internal drawn state
     while ( drawer.lastDrawn.length > 0 ) {
         tile = drawer.lastDrawn.pop();
         tile.beingDrawn = false;
     }
 
-    //TODO
+    // Clear canvas
     drawer.canvas.innerHTML   = "";
     if ( drawer.useCanvas ) {
         if( drawer.canvas.width  != viewportSize.x ||
@@ -14596,7 +14921,7 @@ function updateViewport( drawer ) {
         return;
     }
 
-    //TODO
+    // Calculate viewport rect / bounds
     if ( !drawer.wrapHorizontal ) {
         viewportTL.x = Math.max( viewportTL.x, 0 );
         viewportBR.x = Math.min( viewportBR.x, 1 );
@@ -14606,10 +14931,12 @@ function updateViewport( drawer ) {
         viewportBR.y = Math.min( viewportBR.y, drawer.normHeight );
     }
 
-    //TODO
+    // Calculations for the interval of levels to draw
+    // (above in initial var statement)
+    // can return invalid intervals; fix that here if necessary
     lowestLevel = Math.min( lowestLevel, highestLevel );
 
-    //TODO
+    // Update any level that will be drawn
     var drawLevel; // FIXME: drawLevel should have a more explanatory name
     for ( level = highestLevel; level >= lowestLevel; level-- ) {
         drawLevel = false;
@@ -14654,7 +14981,7 @@ function updateViewport( drawer ) {
             optimalRatio - renderPixelRatioT
         );
 
-        //TODO
+        // Update the level and keep track of 'best' tile to load
         best = updateLevel(
             drawer,
             haveDrawn,
@@ -14668,16 +14995,17 @@ function updateViewport( drawer ) {
             best
         );
 
-        //TODO
+        // Stop the loop if lower-res tiles would all be covered by
+        // already drawn tiles
         if (  providesCoverage( drawer.coverage, level ) ) {
             break;
         }
     }
 
-    //TODO
+    // Perform the actual drawing
     drawTiles( drawer, drawer.lastDrawn );
 
-    //TODO
+    // Load the new 'best' tile
     if ( best ) {
         loadTile( drawer, best, currentTime );
         // because we haven't finished drawing, so
@@ -14882,18 +15210,18 @@ function getTile( x, y, level, tileSource, tilesMatrix, time, numTiles, normHeig
     return tile;
 }
 
-
 function loadTile( drawer, tile, time ) {
     if( drawer.viewport.collectionMode ){
         drawer.midUpdate = false;
         onTileLoad( drawer, tile, time );
     } else {
-        tile.loading = drawer.loadImage(
-            tile.url,
-            function( image ){
+        tile.loading = true;
+        drawer.imageLoader.addJob({
+            src: tile.url,
+            callback: function( image ){
                 onTileLoad( drawer, tile, time, image );
             }
-        );
+        });
     }
 }
 
@@ -15142,21 +15470,6 @@ function compareTiles( previousBest, tile ) {
     }
 
     return previousBest;
-}
-
-function finishLoadingImage( image, callback, successful, jobid ){
-
-    image.onload = null;
-    image.onabort = null;
-    image.onerror = null;
-
-    if ( jobid ) {
-        window.clearTimeout( jobid );
-    }
-    $.requestAnimationFrame( function() {
-        callback( image.src, successful ? image : null);
-    });
-
 }
 
 function drawTiles( drawer, lastDrawn ){
