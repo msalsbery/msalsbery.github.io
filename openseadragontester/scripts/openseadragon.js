@@ -3064,8 +3064,11 @@ $.EventSource.prototype = /** @lends OpenSeadragon.EventSource.prototype */{
             //     of the element (for hover-capable devices) and/or have contact or a button press initiated in the element.
             activePointersLists:   [],
 
-            // Legacy mouse event tracking
+            // Legacy mouse capture tracking
             capturing:             false,
+
+            // Pointer event model capture tracking
+            pointerCaptureCount:   0,
 
             // Tracking for double-click gesture
             lastClickPos:          null,
@@ -4641,7 +4644,10 @@ $.EventSource.prototype = /** @lends OpenSeadragon.EventSource.prototype */{
     function capturePointer( tracker ) {
         var delegate = THIS[ tracker.hash ];
 
-//        if ( !delegate.capturing ) {
+        delegate.pointerCaptureCount++;
+        //$.console.log('pointerCaptureCount++ ', delegate.pointerCaptureCount);
+
+        if ( delegate.pointerCaptureCount === 1 ) {
             // We emulate mouse capture by hanging listeners on the window object.
             //    (Note we listen on the capture phase so the captured handlers will get called first)
             $.addEvent(
@@ -4656,8 +4662,8 @@ $.EventSource.prototype = /** @lends OpenSeadragon.EventSource.prototype */{
                 delegate.pointermovecaptured,
                 true
             );
-//            delegate.capturing = true;
-//        }
+            delegate.capturing = true;
+        }
     }
 
 
@@ -4669,7 +4675,10 @@ $.EventSource.prototype = /** @lends OpenSeadragon.EventSource.prototype */{
     function releasePointer( tracker ) {
         var delegate = THIS[ tracker.hash ];
 
-//        if ( delegate.capturing ) {
+        delegate.pointerCaptureCount--;
+        //$.console.log('pointerCaptureCount-- ', delegate.pointerCaptureCount);
+
+        if ( delegate.pointerCaptureCount === 0 ) {
             // We emulate mouse capture by hanging listeners on the window object.
             //    (Note we listen on the capture phase so the captured handlers will get called first)
             $.removeEvent(
@@ -4684,8 +4693,8 @@ $.EventSource.prototype = /** @lends OpenSeadragon.EventSource.prototype */{
                 delegate.pointerupcaptured,
                 true
             );
-//            delegate.capturing = false;
-//        }
+            delegate.capturing = false;
+        }
     }
 
 
@@ -5098,7 +5107,7 @@ $.EventSource.prototype = /** @lends OpenSeadragon.EventSource.prototype */{
             }
 
             pointsList.contacts++;
-            $.console.log('contacts++ ', pointsList.contacts);
+            //$.console.log('contacts++ ', pointsList.contacts);
 
             if ( tracker.dragHandler || tracker.dragEndHandler || tracker.pinchHandler ) {
                 $.MouseTracker.gesturePointVelocityTracker.addPoint( tracker, curGPoint );
@@ -5225,7 +5234,7 @@ $.EventSource.prototype = /** @lends OpenSeadragon.EventSource.prototype */{
                     // Pointer was activated in our element but could have been removed in any element since events are captured to our element
 
                     pointsList.contacts--;
-                    $.console.log('contacts-- ', pointsList.contacts);
+                    //$.console.log('contacts-- ', pointsList.contacts);
 
                     if ( tracker.dragHandler || tracker.dragEndHandler || tracker.pinchHandler ) {
                         $.MouseTracker.gesturePointVelocityTracker.removePoint( tracker, updateGPoint );
