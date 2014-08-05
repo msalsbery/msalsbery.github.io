@@ -3974,6 +3974,68 @@ $.EventSource.prototype = /** @lends OpenSeadragon.EventSource.prototype */{
 
 
     /**
+     * Begin capturing pointer events to the tracked element (pointer event model only).
+     * @private
+     * @inner
+     */
+    function capturePointer( tracker ) {
+        var delegate = THIS[ tracker.hash ];
+
+        delegate.pointerCaptureCount++;
+        //$.console.log('pointerCaptureCount++ ', delegate.pointerCaptureCount);
+
+        if ( delegate.pointerCaptureCount === 1 ) {
+            // We emulate mouse capture by hanging listeners on the window object.
+            //    (Note we listen on the capture phase so the captured handlers will get called first)
+            $.addEvent(
+                window,
+                $.MouseTracker.unprefixedPointerEvents ? 'pointerup' : 'MSPointerUp',
+                delegate.pointerupcaptured,
+                true
+            );
+            $.addEvent(
+                window,
+                $.MouseTracker.unprefixedPointerEvents ? 'pointermove' : 'MSPointerMove',
+                delegate.pointermovecaptured,
+                true
+            );
+            delegate.capturing = true;
+        }
+    }
+
+
+    /**
+     * Stop capturing pointer events to the tracked element (pointer event model only).
+     * @private
+     * @inner
+     */
+    function releasePointer( tracker ) {
+        var delegate = THIS[ tracker.hash ];
+
+        delegate.pointerCaptureCount--;
+        //$.console.log('pointerCaptureCount-- ', delegate.pointerCaptureCount);
+
+        if ( delegate.pointerCaptureCount === 0 ) {
+            // We emulate mouse capture by hanging listeners on the window object.
+            //    (Note we listen on the capture phase so the captured handlers will get called first)
+            $.removeEvent(
+                window,
+                $.MouseTracker.unprefixedPointerEvents ? 'pointermove' : 'MSPointerMove',
+                delegate.pointermovecaptured,
+                true
+            );
+            $.removeEvent(
+                window,
+                $.MouseTracker.unprefixedPointerEvents ? 'pointerup' : 'MSPointerUp',
+                delegate.pointerupcaptured,
+                true
+            );
+            delegate.capturing = false;
+        }
+    }
+
+
+    /**
      * Gets a W3C Pointer Events model compatible pointer type string from a DOM pointer event.
      * IE10 used a long integer value, but the W3C specification (and IE11+) use a string "mouse", "touch", "pen", etc.
      * @private
@@ -4637,68 +4699,6 @@ $.EventSource.prototype = /** @lends OpenSeadragon.EventSource.prototype */{
 
 
     /**
-     * Begin capturing pointer events to the tracked element (pointer event model only).
-     * @private
-     * @inner
-     */
-    function capturePointer( tracker ) {
-        var delegate = THIS[ tracker.hash ];
-
-        delegate.pointerCaptureCount++;
-        //$.console.log('pointerCaptureCount++ ', delegate.pointerCaptureCount);
-
-        if ( delegate.pointerCaptureCount === 1 ) {
-            // We emulate mouse capture by hanging listeners on the window object.
-            //    (Note we listen on the capture phase so the captured handlers will get called first)
-            $.addEvent(
-                window,
-                $.MouseTracker.unprefixedPointerEvents ? 'pointerup' : 'MSPointerUp',
-                delegate.pointerupcaptured,
-                true
-            );
-            $.addEvent(
-                window,
-                $.MouseTracker.unprefixedPointerEvents ? 'pointermove' : 'MSPointerMove',
-                delegate.pointermovecaptured,
-                true
-            );
-            delegate.capturing = true;
-        }
-    }
-
-
-    /**
-     * Stop capturing pointer events to the tracked element (pointer event model only).
-     * @private
-     * @inner
-     */
-    function releasePointer( tracker ) {
-        var delegate = THIS[ tracker.hash ];
-
-        delegate.pointerCaptureCount--;
-        //$.console.log('pointerCaptureCount-- ', delegate.pointerCaptureCount);
-
-        if ( delegate.pointerCaptureCount === 0 ) {
-            // We emulate mouse capture by hanging listeners on the window object.
-            //    (Note we listen on the capture phase so the captured handlers will get called first)
-            $.removeEvent(
-                window,
-                $.MouseTracker.unprefixedPointerEvents ? 'pointermove' : 'MSPointerMove',
-                delegate.pointermovecaptured,
-                true
-            );
-            $.removeEvent(
-                window,
-                $.MouseTracker.unprefixedPointerEvents ? 'pointerup' : 'MSPointerUp',
-                delegate.pointerupcaptured,
-                true
-            );
-            delegate.capturing = false;
-        }
-    }
-
-
-    /**
      * @private
      * @inner
      */
@@ -4741,7 +4741,10 @@ $.EventSource.prototype = /** @lends OpenSeadragon.EventSource.prototype */{
      * @inner
      */
     function onPointerUpCaptured( tracker, event ) {
-        handlePointerUp( tracker, event );
+        var pointsList = tracker.getActivePointersListByType( getPointerType( event ) );
+        if ( pointsList.getById( event.pointerId ) ) {
+            handlePointerUp( tracker, event );
+        }
         $.stopEvent( event );
     }
 
@@ -4785,7 +4788,10 @@ $.EventSource.prototype = /** @lends OpenSeadragon.EventSource.prototype */{
      * @inner
      */
     function onPointerMoveCaptured( tracker, event ) {
-        handlePointerMove( tracker, event );
+        var pointsList = tracker.getActivePointersListByType( getPointerType( event ) );
+        if ( pointsList.getById( event.pointerId ) ) {
+            handlePointerMove( tracker, event );
+        }
         $.stopEvent( event );
     }
 
