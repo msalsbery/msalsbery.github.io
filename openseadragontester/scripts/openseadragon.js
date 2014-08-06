@@ -1,6 +1,6 @@
 //! OpenSeadragon 1.1.1
-//! Built on 2014-08-05
-//! Git commit: v1.1.1-39-4152b8b-dirty
+//! Built on 2014-08-06
+//! Git commit: v1.1.1-45-1d5b059
 //! http://openseadragon.github.io
 //! License: http://openseadragon.github.io/license/
 
@@ -1587,6 +1587,21 @@ window.OpenSeadragon = window.OpenSeadragon || function( options ){
                 } else {
                     element.style.filter = "";
                 }
+            }
+        },
+
+
+        /**
+         * Sets the specified element's touch-action style attribute to 'none'.
+         * @function
+         * @param {Element|String} element
+         */
+        setElementTouchActionNone: function( element ) {
+            element = $.getElement( element );
+            if ( typeof element.style.touchAction !== 'undefined' ) {
+                element.style.touchAction = 'none';
+            } else if ( typeof element.style.msTouchAction !== 'undefined' ) {
+                element.style.msTouchAction = 'none';
             }
         },
 
@@ -3912,73 +3927,16 @@ $.EventSource.prototype = /** @lends OpenSeadragon.EventSource.prototype */{
                 );
             }
 
-            releaseMouse( tracker );
             delegate.tracking = false;
         }
     }
 
     /**
-     * Begin capturing mouse events to the tracked element (legacy mouse events only).
+     * Begin capturing pointer events to the tracked element.
      * @private
      * @inner
      */
-    function captureMouse( tracker ) {
-        var delegate = THIS[ tracker.hash ];
-
-        if ( !delegate.capturing ) {
-            // We emulate mouse capture by hanging listeners on the window object.
-            //    (Note we listen on the capture phase so the captured handlers will get called first)
-            $.addEvent(
-                window,
-                "mouseup",
-                delegate.mouseupcaptured,
-                true
-            );
-            $.addEvent(
-                window,
-                "mousemove",
-                delegate.mousemovecaptured,
-                true
-            );
-            delegate.capturing = true;
-        }
-    }
-
-
-    /**
-     * Stop capturing mouse events to the tracked element (legacy mouse events only).
-     * @private
-     * @inner
-     */
-    function releaseMouse( tracker ) {
-        var delegate = THIS[ tracker.hash ];
-
-        if ( delegate.capturing ) {
-            // We emulate mouse capture by hanging listeners on the window object.
-            //    (Note we listen on the capture phase so the captured handlers will get called first)
-            $.removeEvent(
-                window,
-                "mousemove",
-                delegate.mousemovecaptured,
-                true
-            );
-            $.removeEvent(
-                window,
-                "mouseup",
-                delegate.mouseupcaptured,
-                true
-            );
-            delegate.capturing = false;
-        }
-    }
-
-
-    /**
-     * Begin capturing pointer events to the tracked element (pointer event model only).
-     * @private
-     * @inner
-     */
-    function capturePointer( tracker ) {
+    function capturePointer( tracker, isLegacyMouse ) {
         var delegate = THIS[ tracker.hash ];
 
         delegate.pointerCaptureCount++;
@@ -3989,27 +3947,26 @@ $.EventSource.prototype = /** @lends OpenSeadragon.EventSource.prototype */{
             //    (Note we listen on the capture phase so the captured handlers will get called first)
             $.addEvent(
                 window,
-                $.MouseTracker.unprefixedPointerEvents ? 'pointerup' : 'MSPointerUp',
-                delegate.pointerupcaptured,
+                isLegacyMouse ? 'mouseup' : ($.MouseTracker.unprefixedPointerEvents ? 'pointerup' : 'MSPointerUp'),
+                isLegacyMouse ? delegate.mouseupcaptured : delegate.pointerupcaptured,
                 true
             );
             $.addEvent(
                 window,
-                $.MouseTracker.unprefixedPointerEvents ? 'pointermove' : 'MSPointerMove',
-                delegate.pointermovecaptured,
+                isLegacyMouse ? 'mousemove' : ($.MouseTracker.unprefixedPointerEvents ? 'pointermove' : 'MSPointerMove'),
+                isLegacyMouse ? delegate.mousemovecaptured : delegate.pointermovecaptured,
                 true
             );
-            delegate.capturing = true;
         }
     }
 
 
     /**
-     * Stop capturing pointer events to the tracked element (pointer event model only).
+     * Stop capturing pointer events to the tracked element.
      * @private
      * @inner
      */
-    function releasePointer( tracker ) {
+    function releasePointer( tracker, isLegacyMouse ) {
         var delegate = THIS[ tracker.hash ];
 
         delegate.pointerCaptureCount--;
@@ -4020,17 +3977,16 @@ $.EventSource.prototype = /** @lends OpenSeadragon.EventSource.prototype */{
             //    (Note we listen on the capture phase so the captured handlers will get called first)
             $.removeEvent(
                 window,
-                $.MouseTracker.unprefixedPointerEvents ? 'pointermove' : 'MSPointerMove',
-                delegate.pointermovecaptured,
+                isLegacyMouse ? 'mousemove' : ($.MouseTracker.unprefixedPointerEvents ? 'pointermove' : 'MSPointerMove'),
+                isLegacyMouse ? delegate.mousemovecaptured : delegate.pointermovecaptured,
                 true
             );
             $.removeEvent(
                 window,
-                $.MouseTracker.unprefixedPointerEvents ? 'pointerup' : 'MSPointerUp',
-                delegate.pointerupcaptured,
+                isLegacyMouse ? 'mouseup' : ($.MouseTracker.unprefixedPointerEvents ? 'pointerup' : 'MSPointerUp'),
+                isLegacyMouse ? delegate.mouseupcaptured : delegate.pointerupcaptured,
                 true
             );
-            delegate.capturing = false;
         }
     }
 
@@ -4313,7 +4269,7 @@ $.EventSource.prototype = /** @lends OpenSeadragon.EventSource.prototype */{
 
         event = $.getEvent( event );
 
-        if ( isParentChild( event.currentTarget, event.relatedTarget ) ) {//this === event.relatedTarget || 
+        if ( this === event.relatedTarget || isParentChild( event.currentTarget, event.relatedTarget ) ) {
             return;
         }
 
@@ -4338,7 +4294,7 @@ $.EventSource.prototype = /** @lends OpenSeadragon.EventSource.prototype */{
 
         event = $.getEvent( event );
 
-        if ( isParentChild( event.currentTarget, event.relatedTarget ) ) {//this === event.relatedTarget || 
+        if ( this === event.relatedTarget || isParentChild( event.currentTarget, event.relatedTarget ) ) {
             return;
         }
 
@@ -4373,7 +4329,7 @@ $.EventSource.prototype = /** @lends OpenSeadragon.EventSource.prototype */{
 
         if ( updatePointersDown( tracker, event, [ gPoint ], event.button ) ) {
             $.stopEvent( event );
-            captureMouse( tracker );
+            capturePointer( tracker, true );
         }
 
         if ( tracker.clickHandler || tracker.dblClickHandler || tracker.pressHandler || tracker.dragHandler || tracker.dragEndHandler ) {
@@ -4421,7 +4377,7 @@ $.EventSource.prototype = /** @lends OpenSeadragon.EventSource.prototype */{
         };
 
         if ( updatePointersUp( tracker, event, [ gPoint ], event.button ) ) {
-            releaseMouse( tracker );
+            releasePointer( tracker, true );
         }
     }
 
@@ -4659,7 +4615,7 @@ $.EventSource.prototype = /** @lends OpenSeadragon.EventSource.prototype */{
     function onPointerOver( tracker, event ) {
         var gPoint;
 
-        if ( isParentChild( event.currentTarget, event.relatedTarget ) ) {//this === event.relatedTarget || 
+        if ( this === event.relatedTarget || isParentChild( event.currentTarget, event.relatedTarget ) ) {
             return;
         }
 
@@ -4682,7 +4638,7 @@ $.EventSource.prototype = /** @lends OpenSeadragon.EventSource.prototype */{
     function onPointerOut( tracker, event ) {
         var gPoint;
 
-        if ( isParentChild( event.currentTarget, event.relatedTarget ) ) {//this === event.relatedTarget || 
+        if ( this === event.relatedTarget || isParentChild( event.currentTarget, event.relatedTarget ) ) {
             return;
         }
 
@@ -4714,7 +4670,7 @@ $.EventSource.prototype = /** @lends OpenSeadragon.EventSource.prototype */{
         };
 
         if ( updatePointersDown( tracker, event, [ gPoint ], event.button ) ) {
-            capturePointer( tracker );
+            capturePointer( tracker, false );
             $.stopEvent( event );
         }
 
@@ -4765,7 +4721,7 @@ $.EventSource.prototype = /** @lends OpenSeadragon.EventSource.prototype */{
         };
 
         if ( updatePointersUp( tracker, event, [ gPoint ], event.button ) ) {
-            releasePointer( tracker );
+            releasePointer( tracker, false );
             //$.stopEvent( event );
         }
     }
@@ -6308,13 +6264,8 @@ $.Viewer = function( options ) {
         style.position = "absolute";
         style.top      = "0px";
         style.left     = "0px";
-        // Disable browser default touch handling
-        if ( style[ "touch-action" ] !== undefined ) {
-            style[ "touch-action" ] = "none";
-        } else if ( style["-ms-touch-action"] !== undefined ) {
-            style[ "-ms-touch-action" ] = "none";
-        }
     }(this.canvas.style));
+    $.setElementTouchActionNone( this.canvas );
 
     //the container is created through applying the ControlDock constructor above
     this.container.className = "openseadragon-container";
@@ -8426,8 +8377,8 @@ function onCanvasDragEnd( event ) {
                 target.y = center.y;
             }
             this.viewport.panTo( target, false );
-            this.viewport.applyConstraints();
         }
+        this.viewport.applyConstraints();
     }
     /**
      * Raised when a mouse or touch drag operation ends on the {@link OpenSeadragon.Viewer#canvas} element.
@@ -8455,15 +8406,6 @@ function onCanvasDragEnd( event ) {
 }
 
 function onCanvasRelease( event ) {
-    var gestureSettings;
-
-    if ( event.insideElementPressed && this.viewport ) {
-        gestureSettings = this.gestureSettingsByDeviceType( event.pointerType );
-
-        if ( !gestureSettings.flickEnabled ) {
-            this.viewport.applyConstraints();
-        }
-    }
     /**
      * Raised when the mouse button is released or touch ends on the {@link OpenSeadragon.Viewer#canvas} element.
      *
@@ -9099,11 +9041,7 @@ $.Navigator = function( options ){
 
     options.minPixelRatio = this.minPixelRatio = viewer.minPixelRatio;
 
-    if ( this.element.style[ "touch-action" ] !== undefined ) {
-        this.element.style[ "touch-action" ] = "none";
-    } else if ( this.element.style[ "-ms-touch-action" ] !== undefined ) {
-        this.element.style[ "-ms-touch-action" ] = "none";
-    }
+    $.setElementTouchActionNone( this.element );
 
     this.borderWidth = 2;
     //At some browser magnification levels the display regions lines up correctly, but at some there appears to
@@ -11812,11 +11750,7 @@ $.Button = function( options ) {
             this.tooltip;
 
         this.element.style.position = "relative";
-        if ( this.element.style[ "touch-action" ] !== undefined ) {
-            this.element.style[ "touch-action" ] = "none";
-        } else if ( this.element.style[ "-ms-touch-action" ] !== undefined ) {
-            this.element.style[ "-ms-touch-action" ] = "none";
-        }
+        $.setElementTouchActionNone( this.element );
 
         this.imgGroup.style.position =
         this.imgHover.style.position =
@@ -12268,11 +12202,7 @@ $.ButtonGroup = function( options ) {
         }
     }
 
-    if ( this.element.style[ "touch-action" ] !== undefined ) {
-        this.element.style[ "touch-action" ] = "none";
-    } else if ( this.element.style[ "-ms-touch-action" ] !== undefined ) {
-        this.element.style[ "-ms-touch-action" ] = "none";
-    }
+    $.setElementTouchActionNone( this.element );
 
     /**
      * Tracks mouse/touch/key events accross the group of buttons.
@@ -12712,11 +12642,7 @@ $.ReferenceStrip = function ( options ) {
     style.background    = '#000';
     style.position      = 'relative';
 
-    if ( this.element.style[ "touch-action" ] !== undefined ) {
-        this.element.style[ "touch-action" ] = "none";
-    } else if ( this.element.style[ "-ms-touch-action" ] !== undefined ) {
-        this.element.style[ "-ms-touch-action" ] = "none";
-    }
+    $.setElementTouchActionNone( this.element );
 
     $.setElementOpacity( this.element, 0.8 );
 
@@ -12793,11 +12719,7 @@ $.ReferenceStrip = function ( options ) {
         element.style.cssFloat      = 'left'; //Firefox
         element.style.styleFloat    = 'left'; //IE
         element.style.padding       = '2px';
-        if ( element.style[ "touch-action" ] !== undefined ) {
-            element.style[ "touch-action" ] = "none";
-        } else if ( element.style[ "-ms-touch-action" ] !== undefined ) {
-            element.style[ "-ms-touch-action" ] = "none";
-        }
+        $.setElementTouchActionNone( element );
 
         element.innerTracker = new $.MouseTracker( {
             element:            element,
