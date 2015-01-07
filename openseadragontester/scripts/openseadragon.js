@@ -1,6 +1,6 @@
-//! OpenSeadragon 1.1.1
-//! Built on 2014-12-31
-//! Git commit: v1.1.1-151-92fa9cf
+//! OpenSeadragon 1.2.0
+//! Built on 2015-01-05
+//! Git commit: v1.2.0-0-d694c7e
 //! http://openseadragon.github.io
 //! License: http://openseadragon.github.io/license/
 
@@ -89,7 +89,7 @@
 
 
 /**
- * @version  OpenSeadragon 1.1.1
+ * @version  OpenSeadragon 1.2.0
  *
  * @file
  * <h2><strong>OpenSeadragon - Javascript Deep Zooming</strong></h2>
@@ -674,10 +674,10 @@ window.OpenSeadragon = window.OpenSeadragon || function( options ){
      * @since 1.0.0
      */
     $.version = {
-        versionStr: '1.1.1',
+        versionStr: '1.2.0',
         major: parseInt('1', 10),
-        minor: parseInt('1', 10),
-        revision: parseInt('1', 10)
+        minor: parseInt('2', 10),
+        revision: parseInt('0', 10)
     };
 
 
