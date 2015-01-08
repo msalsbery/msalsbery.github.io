@@ -1,6 +1,6 @@
-//! OpenSeadragonImagingHelper 1.1.0
-//! Build date: 2014-01-13
-//! Git commit: v1.0.0-17-g2322896
+//! OpenSeadragonImagingHelper 1.2.0
+//! Build date: 2015-01-08
+//! Git commit: v1.2.0-0-g6ac5f20
 //! https://github.com/msalsbery/OpenSeadragonImagingHelper
 /* 
  * Copyright (c) 2013-2014 Mark Salsbery
@@ -26,14 +26,14 @@
 
 /**
  * @file
- * @version  OpenSeadragonImagingHelper 1.1.0
+ * @version  OpenSeadragonImagingHelper 1.2.0
  * @author Mark Salsbery <msalsbery@hotmail.com>
  *
  */
 
 /**
  * @module openseadragon-imaginghelper
- * @version  OpenSeadragonImagingHelper 1.1.0
+ * @version  OpenSeadragonImagingHelper 1.2.0
  *
  */
 
@@ -157,9 +157,9 @@
      */
     /* jshint ignore:start */
     $.ImagingHelper.version = {
-        versionStr: '1.1.0',
+        versionStr: '1.2.0',
         major: 1,
-        minor: 1,
+        minor: 2,
         revision: 0
     };
     /* jshint ignore:end */
@@ -412,7 +412,7 @@
          **/
         zoomOut: function (immediately) {
             var newzoom = this._zoomFactor;
-            newzoom *= (1.0 - this._zoomStepPercent / 100.0);
+            newzoom /= (1.0 + this._zoomStepPercent / 100.0);
             if (newzoom < this._minZoom) {
                 newzoom = this._minZoom;
             }
@@ -462,7 +462,7 @@
          **/
         zoomOutAboutLogicalPoint: function (logpoint, immediately) {
             var newzoom = this._zoomFactor;
-            newzoom *= (1.0 - this._zoomStepPercent / 100.0);
+            newzoom /= (1.0 + this._zoomStepPercent / 100.0);
             if (newzoom < this._minZoom) {
                 newzoom = this._minZoom;
             }
