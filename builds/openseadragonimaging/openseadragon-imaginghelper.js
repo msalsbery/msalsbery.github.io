@@ -1,8 +1,8 @@
 //! OpenSeadragonImagingHelper 1.2.0
-//! Build date: 2015-01-08
-//! Git commit: v1.2.0-0-g6ac5f20
+//! Build date: 2017-11-29
+//! Git commit: v1.2.0-13-g98ee9c3-dirty
 //! https://github.com/msalsbery/OpenSeadragonImagingHelper
-/* 
+/*
  * Copyright (c) 2013-2014 Mark Salsbery
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy of
@@ -51,6 +51,7 @@
      * @memberof external:"OpenSeadragon.Viewer"#
      * @param {Object} options
      * @param {OpenSeadragon.EventHandler} [options.onImageViewChanged] - {@link OpenSeadragonImaging.ImagingHelper.event:image-view-changed} handler method.
+     * @param {Integer} [options.worldIndex] - The index of the image for world.getItemAt
      * @returns {OpenSeadragonImaging.ImagingHelper}
      *
      **/
@@ -73,6 +74,7 @@
      * @param {Object} options
      * @param {external:"OpenSeadragon.Viewer"} options.viewer - Required! Reference to OpenSeadragon viewer to attach to.
      * @param {external:"OpenSeadragon.EventHandler"} [options.onImageViewChanged] - {@link OpenSeadragonImaging.ImagingHelper.event:image-view-changed} handler method.
+     * @param {Integer} [options.worldIndex] - The index of the image for world.getItemAt
      *
      **/
     $.ImagingHelper = function(options) {
@@ -89,8 +91,8 @@
 
         // Call base class constructor
         OSD.EventSource.call(this);
-        
-        // Add this object to the Viewer        
+
+        // Add this object to the Viewer
         this._viewer.imagingHelper = this;
 
         /**
@@ -176,9 +178,9 @@
     /** @lends OpenSeadragonImaging.ImagingHelper.prototype */
     {
         /*
-         * 
+         *
          * Raises the {@link OpenSeadragonImaging.ImagingHelper.image-view-changed} event
-         * 
+         *
          * @private
          * @method
          *
@@ -207,9 +209,9 @@
         },
 
         /*
-         * 
+         *
          * Called whenever the OpenSeadragon viewer zoom/pan changes
-         * 
+         *
          * @private
          * @method
          * @fires OpenSeadragonImaging.ImagingHelper.image-view-changed
@@ -247,7 +249,7 @@
 
         /**
          * Helper method for users of the OpenSeadragon.Viewer's autoResize = false option.
-         * Call this whenever the viewer is resized, and the image will stay displayed at the same scale 
+         * Call this whenever the viewer is resized, and the image will stay displayed at the same scale
          * and same center point.
          *
          * @method
@@ -693,8 +695,22 @@
      **/
     function onOpen() {
         this._haveImage = true;
-        this.imgWidth = this._viewer.viewport.contentSize.x;
-        this.imgHeight = this._viewer.viewport.contentSize.y;
+        var contentSizeViewport = {},
+            contentSize;
+        // use world if we can't use contentSize
+        if (!this._viewer.viewport.contentSize){
+          var homeBounds = this._viewer.world.getHomeBounds();
+          contentSizeViewport.x = homeBounds.width - homeBounds.x;
+          contentSizeViewport.y = homeBounds.height - homeBounds.y;
+          // options could have an index for world
+          var worldIndex = parseInt(this.options.worldIndex) || 0;
+          contentSize = this._viewer.world.getItemAt(worldIndex).viewportToImageCoordinates(contentSizeViewport.x, contentSizeViewport.y);
+        }
+        else {
+          contentSize = this._viewer.viewport.contentSize;
+        }
+        this.imgWidth = contentSize.x;
+        this.imgHeight = contentSize.y;
         this.imgAspectRatio = this.imgWidth / this.imgHeight;
         this._trackZoomPan();
     }
