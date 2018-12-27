@@ -52,7 +52,7 @@
 		navigatorId: 'navigatorDiv1',
 		navigatorAutoResize: false,
 		//------------------
-		sequenceMode: false,
+		sequenceMode: true,
 		// initialPage: 1,
 		// preserveViewport: true,
 		// preserveOverlays: false,
@@ -66,7 +66,7 @@
 		// referenceStripPosition: 'BOTTOM_LEFT',
 		// referenceStripSizeRatio: 0.2,
 		//------------------
-		collectionMode: true,
+		collectionMode: false,
 		// collectionLayout: 'horizontal',
 		collectionRows: 2,
 		collectionColumns: 2,
