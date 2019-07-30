@@ -1,0 +1,289 @@
+<div class="container console-pane" data-bind="using: outputVM">
+		<!-- <div class="row">
+			<div class="col">
+				<div class="btn-toolbar console-toolbar" role="toolbar"
+					aria-label="Toolbar for console output">
+					<div class="btn-group mr-2" role="group" aria-label="First group">
+						<button class="btn btn-sm btn-dark" type="button">Clear</button>
+					</div>
+				</div>
+			</div>
+		</div> -->
+		<div class="row">
+			<div class="col">
+				<ul class="console-list" id="console-list" data-bind="foreach: consoleRows">
+					<li data-bind="class: itemClass">
+						<span data-bind="text: msg"> </span>
+					</li>
+				</ul>
+			</div>
+		</div>
+	</div>
+
+
+
+
+
+
+
+
+
+<div class="absolute-fill-container shell-wrapper">
+		<div class="shell-header-wrapper">
+			<div class="shell-header-container">
+			</div>
+		</div>
+		<div class="shell-view-wrapper" >
+			<!--
+			<div class="absolute-fill-container view-container">
+			</div>
+			-->
+		</div>
+		<div class="shell-footer-wrapper">
+			<div class="shell-footer-container">
+				<!-- <span class="shell-footer-text float-right">Mark Salsbery - � 2019</span> -->
+			</div>
+		</div>
+	</div>
+
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<meta charset="utf-8">
+		<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+
+		<title>OpenSeadragon Imaging</title>
+
+		<!-- <link rel="stylesheet" type="text/css" href="content/style/jquery-ui-1.10.3.custom.min.css" /> -->
+		<!-- <link
+			rel="stylesheet"
+			type="text/css"
+			href="lib/jquery-ui-1.12.1.custom/jquery-ui.min.css"
+		/> -->
+		<!-- <link
+			rel="stylesheet"
+			type="text/css"
+			href="lib/jquery-ui-1.12.1.custom/jquery-ui.structure.min.css"
+		/> -->
+		<!-- <link
+			rel="stylesheet"
+			type="text/css"
+			href="lib/jquery-ui-1.12.1.custom/jquery-ui.theme.min.css"
+		/> -->
+		<link rel="stylesheet" type="text/css" href="lib/bootstrap-4.3.1-dist/css/bootstrap.min.css" />
+		<!-- <link rel="stylesheet" type="text/css" href="content/style/bootstrap-overrides.css" /> -->
+		<link rel="stylesheet" type="text/css" href="content/style/app.css" />
+	</head>
+	<body>
+		<div class="absolute-fill-container shell-wrapper">
+			<div class="shell-header-wrapper">
+				<div class="shell-header-container">
+					<nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+						<button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarText" aria-controls="navbarText" aria-expanded="false" aria-label="Toggle navigation">
+						  <span class="navbar-toggler-icon"></span>
+						</button>
+						<div class="collapse navbar-collapse" id="navbarText">
+							<span class="navbar-brand" data-bind="text: appTitle"></span>
+							<span class="navbar-brand" data-bind="text: appDesc" ></span>
+						  <ul class="navbar-nav mr-auto">
+							<!--
+							<li class="nav-item active">
+							  <a class="nav-link" href="#">Home <span class="sr-only">(current)</span></a>
+							</li>
+							<li class="nav-item">
+							  <a class="nav-link" href="#">Features</a>
+							</li>
+							<li class="nav-item">
+							  <a class="nav-link" href="#">Pricing</a>
+							</li>
+							-->
+							<li class="nav-item dropdown">
+								<a class="nav-link dropdown-toggle" data-toggle="dropdown" href="#" role="button" aria-haspopup="true" aria-expanded="false">Links</a>
+								<div class="dropdown-menu">
+									<a class="dropdown-item" href="http://openseadragon.github.io/">OpenSeadragon</a>
+									<a class="dropdown-item" href="https://github.com/msalsbery/OpenSeadragonImagingHelper/">OpenSeadragonImagingHelper</a>
+									<a class="dropdown-item" href="https://github.com/msalsbery/OpenSeadragonViewerInputHook/">OpenSeadragonViewerInputHook</a>
+									<!--
+									<div class="dropdown-divider"></div>
+									<a class="dropdown-item" href="#">Separated link</a>
+									-->
+								</div>
+							</li>
+						  </ul>
+						  <!-- <span class="navbar-text">
+							Navbar text with an inline element
+						  </span> -->
+							<!-- <div class="btn-group float-right">
+								<a class="btn dropdown-toggle" data-toggle="dropdown" href=""
+									>Links...<span class="caret"></span
+								></a>
+								<div class="dropdown-menu" aria-labelledby="dropdownMenuButton">
+									<a class="dropdown-item" href="http://openseadragon.github.io/">OpenSeadragon</a>
+									<a class="dropdown-item" href="https://github.com/msalsbery/OpenSeadragonImagingHelper/">OpenSeadragonImagingHelper</a>
+									<a class="dropdown-item" href="https://github.com/msalsbery/OpenSeadragonViewerInputHook/">OpenSeadragonViewerInputHook</a>
+								</div>
+							</div> -->
+						</div>
+					</nav>
+				</div>
+			</div>
+			<div class="shell-view-wrapper" >
+				<div class="absolute-fill-container view-container">
+					<div class="container-fluid">
+						<div class="row">
+							<div class="col-3" >
+								<div
+									class="output-container"
+									data-bind="using: outputVM"
+								>
+									<ul id="console-list" data-bind="foreach: consoleRows" class="relative-fill-container console-list" >
+										<li data-bind="class: itemClass" >
+											<span data-bind="text: msg" > </span>
+										</li>
+									</ul>
+								</div>
+							</div>
+							<div class="col-9" >
+								<div class="viewer-container">
+									<div
+										id="theImageViewerContainer"
+										class="relative-fill-container"
+									>
+										<div
+											id="viewerDiv1"
+											class="absolute-fill-container openseadragon1"
+										></div>
+										<!-- <svg
+											xmlns="http://www.w3.org/2000/svg"
+											version="1.1"
+											class="imgvwrSVG"
+											data-bind="with: svgOverlayVM"
+											visibility="hidden"
+											pointer-events="none"
+											zoomAndPan="disable"
+										>
+											<defs></defs>
+											<g
+												class="imgvwrSVGAnnoGroup"
+												data-bind="attr: {transform:annoGroupTransform}"
+											>
+												<switch>
+													<foreignObject x="50" y="50" width="160" height="160" cursor="move" pointer-events="none">
+														<div xmlns="http://www.w3.org/1999/xhtml">
+															Lorem ipsum dolor sit amet, consectetur adipiscing elit.
+															Sed mollis mollis mi ut ultricies. Nullam magna ipsum,
+															porta vel dui convallis, rutrum imperdiet eros. Aliquam
+															erat volutpat.
+														</div>
+													</foreignObject>
+													<text x="50" y="50" stroke="yellow">NOT SUPPORTED</text>
+												</switch>
+												<g id="sampleanno" transform="translate(-50,-50)">
+													<circle
+														cx="50"
+														cy="50"
+														r="50"
+														cursor="default"
+														pointer-events="visiblePainted"
+														stroke="yellow"
+														stroke-width="1"
+														vector-effect="non-scaling-stroke"
+														fill="none"
+													></circle>
+													<rect
+														id="tl"
+														x="0"
+														y="0"
+														width="4"
+														height="4"
+														cursor="nwse-resize"
+														pointer-events="visiblePainted"
+														stroke="yellow"
+														stroke-width="1"
+														vector-effect="non-scaling-stroke"
+														fill="transparent"
+													></rect>
+													<rect
+														id="tr"
+														x="96"
+														y="0"
+														width="4"
+														height="4"
+														cursor="nesw-resize"
+														pointer-events="visiblePainted"
+														stroke="yellow"
+														stroke-width="1"
+														vector-effect="non-scaling-stroke"
+														fill="transparent"
+													></rect>
+													<rect
+														id="bl"
+														x="0"
+														y="96"
+														width="4"
+														height="4"
+														cursor="nesw-resize"
+														pointer-events="visiblePainted"
+														stroke="yellow"
+														stroke-width="1"
+														vector-effect="non-scaling-stroke"
+														fill="transparent"
+													></rect>
+													<rect
+														id="br"
+														x="96"
+														y="96"
+														width="4"
+														height="4"
+														cursor="nwse-resize"
+														pointer-events="visiblePainted"
+														stroke="yellow"
+														stroke-width="1"
+														vector-effect="non-scaling-stroke"
+														fill="transparent"
+													></rect>
+												</g>
+											</g>
+										</svg> -->
+										<div class="navigatorExpander">
+											<div class="expanderWrapper">
+												<div class="expanderHeaderContainer expanderToggle">
+													<span class="navigatorHeader">Navigator</span>
+												</div>
+												<div class="expanderContentContainer">
+													<div
+														id="navigatorDiv1"
+														class="navigatorDiv"
+													></div>
+												</div>
+											</div>
+										</div>
+									</div>
+								</div>
+							</div>
+						</div>
+					</div>
+				</div>
+			</div>
+			<div class="shell-footer-wrapper">
+				<div class="shell-footer-container">
+					<span class="shell-footer-text float-right">Mark Salsbery - � 2019</span>
+				</div>
+			</div>
+		</div>
+
+		<script type="text/javascript" src="lib/jquery-3.4.1.slim.min.js"></script>
+		<!-- <script type="text/javascript" src='lib/jquery-ui-1.10.3.custom.min.js'></script> -->
+		<!-- <script type="text/javascript" src="lib/jquery-ui-1.12.1.custom/jquery-ui.min.js"></script> -->
+		<script type="text/javascript" src="lib/popper.min.js"></script>
+		<script type="text/javascript" src="lib/knockout-3.5.0.js"></script>
+		<script type="text/javascript" src="lib/bootstrap-4.3.1-dist/js/bootstrap.min.js"></script>
+		<script type="text/javascript" src="lib/openseadragon/openseadragon.js"></script>
+		<script type="text/javascript" src="lib/openseadragon-imaging/openseadragon-consolehook.js"></script>
+		<script type="text/javascript" src="lib/openseadragon-imaging/openseadragon-imaginghelper.js"></script>
+		<script type="text/javascript" src="lib/openseadragon-imaging/openseadragon-viewerinputhook.js"></script>
+		<!-- <script type="text/javascript" src="lib/openseadragon-imaging/openseadragon-annohost.js"></script> -->
+
+		<script type="text/javascript" src="scripts/viewmodel.js"></script>
+	</body>
+</html>
