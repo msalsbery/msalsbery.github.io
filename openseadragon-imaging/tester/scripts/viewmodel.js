@@ -8,6 +8,7 @@ $(function () {
 
 	var tileSourcesPrefix = './data/';
 	var tileSources = [
+		tileSourcesPrefix + 'dataset/pyramid.xml',
 		tileSourcesPrefix + 'testpattern.dzi',
 		tileSourcesPrefix + 'tall.dzi',
 		tileSourcesPrefix + 'wide.dzi',
