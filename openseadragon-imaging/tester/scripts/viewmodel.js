@@ -9,6 +9,8 @@ $(function () {
 	var tileSourcesPrefix = './data/';
 	var tileSources = [
 		tileSourcesPrefix + 'dataset/pyramid.xml',
+		//'https://www.pcboostin.com/test/dataset1/0/data/pyramid.xml',
+		tileSourcesPrefix + 'hawaii_stitch_hdv.xml',
 		tileSourcesPrefix + 'testpattern.dzi',
 		tileSourcesPrefix + 'tall.dzi',
 		tileSourcesPrefix + 'wide.dzi',
