@@ -1,0 +1,15 @@
+<?xml version="1.0"?>
+<root>
+	<imageset
+		url="hawaii_stitch_files/{l}/{c}_{r}.jpg"
+		levels="14"
+		width="7056"
+		height="3024"
+		projection="perspective"
+		alphaBlend="1"
+		maxZoom="2.000000"
+		tileWidth="254"
+		tileHeight="254"
+		tileOverlap="1"
+	/>
+</root>
